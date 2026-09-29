@@ -53,10 +53,27 @@ button{font-family:var(--font-body);}
   border-radius:6px;
   display:flex;justify-content:space-between;align-items:flex-end;
   padding:18px 22px;gap:24px;flex-wrap:wrap;
+  margin-bottom:14px;
 }
 .tb-name{font-weight:700;font-size:22px;letter-spacing:-0.2px;color:var(--ink);}
 .tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;}
 .tb-meta b{color:var(--ink);font-weight:600;}
+
+/* Abas */
+.tabs-nav{display:flex;gap:8px;margin-bottom:14px;}
+.tab-btn{
+  background:var(--panel);border:1px solid var(--line);border-bottom:none;
+  border-radius:6px 6px 0 0;padding:10px 20px;font-weight:600;font-size:13.5px;
+  cursor:pointer;color:var(--ink-dim);transition:all 0.2s;
+}
+.tab-btn:hover{color:var(--ink);background:var(--panel-alt);}
+.tab-btn.active{
+  background:var(--panel);color:var(--mrv-green);border-color:var(--line);
+  border-bottom:2px solid var(--panel);margin-bottom:-1px;position:relative;z-index:2;
+}
+
+.tab-content{display:none;}
+.tab-content.active{display:block;}
 
 .panel{
   border:1px solid var(--line);
@@ -111,6 +128,28 @@ tbody tr:hover{background:#EAF0F6;}
   padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:140px;
 }
 .filters input[type=text]{min-width:200px;}
+
+/* Checkbox Dropdown / Box */
+.checkbox-dropdown{
+  position:relative;display:inline-block;
+}
+.checkbox-dropdown-btn{
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  padding:7px 12px;font-family:var(--font-body);font-size:12.3px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;min-width:200px;justify-content:space-between;
+}
+.checkbox-dropdown-content{
+  display:none;position:absolute;background:var(--panel);border:1px solid var(--line);
+  border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.1);padding:10px;z-index:100;
+  min-width:240px;max-height:220px;overflow-y:auto;top:100%;left:0;margin-top:4px;
+}
+.checkbox-dropdown-content.show{display:block;}
+.checkbox-item{
+  display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:12px;cursor:pointer;
+}
+.checkbox-item:hover{background:var(--panel-alt);border-radius:3px;}
+.checkbox-item input{cursor:pointer;}
+
 .btn-ghost{
   background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
   font-weight:500;font-size:12.5px;padding:8px 13px;cursor:pointer;
@@ -135,74 +174,93 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
 
-  <div class="section-gap"></div>
-
   <div id="dashboard">
 
-    <div class="kpi-row" id="kpiRow"></div>
+    <!-- Navegação por Abas -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-painel">Painel de Avaliações</button>
+      <button class="tab-btn" data-tab="tab-detalhes">Detalhamento por Unidade</button>
+    </div>
 
-    <div class="section-gap"></div>
+    <!-- ABA 1: Painel de Avaliações -->
+    <div id="tab-painel" class="tab-content active">
+      <div class="kpi-row" id="kpiRow"></div>
 
-    <div class="panel">
-      <h2>Por regional (Visão em árvore)</h2>
-      <div class="filters">
-        <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
-        <select id="treeFilterRegional">
-          <option value="">Todas as regionais</option>
-        </select>
-        <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
-      </div>
-      <div class="table-scroll">
-        <table id="treeTable">
-          <thead><tr>
-            <th class="left">Rótulos de Linha</th>
-            <th>Etq. Disp</th>
-            <th>Etq. Livre</th>
-            <th>Méd. VA</th>
-            <th>Méd. VI</th>
-            <th>% Desvio</th>
-            <th>Qtde. UH Reavaliar</th>
-            <th>% UH Reavaliar</th>
-            <th>Dias Última VA</th>
-          </tr></thead>
-          <tbody id="treeTbody"></tbody>
-        </table>
+      <div class="panel">
+        <div class="filters">
+          <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
+          <select id="treeFilterRegional">
+            <option value="">Todas as regionais</option>
+          </select>
+          <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
+        </div>
+        <div class="table-scroll">
+          <table id="treeTable">
+            <thead><tr>
+              <th class="left">Rótulos de Linha</th>
+              <th>Etq. Disp</th>
+              <th>Etq. Livre</th>
+              <th>Méd. VA</th>
+              <th>Méd. VI</th>
+              <th>% Desvio</th>
+              <th>Qtde. UH Reavaliar</th>
+              <th>% UH Reavaliar</th>
+              <th>Dias Última VA</th>
+            </tr></thead>
+            <tbody id="treeTbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <div class="section-gap"></div>
+    <!-- ABA 2: Detalhamento por Unidade -->
+    <div id="tab-detalhes" class="tab-content">
+      <div class="panel">
+        <h2>Detalhamento por unidade</h2>
+        <div class="filters">
+          <select id="filterRegional"><option value="">Todas as regionais</option></select>
+          <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
+          
+          <!-- Filtro de Status da Unidade por Checkboxes Múltiplos -->
+          <div class="checkbox-dropdown">
+            <div class="checkbox-dropdown-btn" id="statusUnidadeDropdownBtn">
+              <span id="statusUnidadeBtnText">Status Unidade (Todos)</span> ▾
+            </div>
+            <div class="checkbox-dropdown-content" id="statusUnidadeContainer">
+              <div style="font-weight:600; margin-bottom:6px; font-size:11.5px; border-bottom:1px solid var(--line); padding-bottom:4px; display:flex; justify-content:space-between;">
+                <span>Selecionar Status</span>
+                <a href="#" id="selectAllStatus" style="font-weight:normal; font-size:11px;">Todos</a>
+              </div>
+              <div id="statusUnidadeCheckboxesList"></div>
+            </div>
+          </div>
 
-    <div class="panel">
-      <h2>Detalhamento por unidade</h2>
-      <div class="filters">
-        <select id="filterRegional"><option value="">Todas as regionais</option></select>
-        <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
-        <select id="filterStatusUnidade"><option value="">Todos Status Unidade</option></select>
-        <select id="filterStatusReav"><option value="">Todos Status Reavaliação</option></select>
-      </div>
-      <div class="table-scroll">
-        <table id="detailTable">
-          <thead><tr>
-            <th class="left">Regional</th>
-            <th class="left">Empreendimento</th>
-            <th class="left">Bloco</th>
-            <th class="left">Unidade</th>
-            <th class="left">Tipologia Real</th>
-            <th class="left">Status Unidade</th>
-            <th>Valor Avaliação</th>
-            <th>Valor do Imóvel</th>
-            <th>Desvio</th>
-            <th>Dias Últ. VA</th>
-            <th class="left">Status</th>
-          </tr></thead>
-          <tbody id="detailTbody"></tbody>
-        </table>
-      </div>
-      <div class="table-wrap-foot">
-        <div class="pager" id="pagerInfo"></div>
-        <div class="pager">
-          <button class="btn-ghost btn-small" id="btnPrevPage">‹ Anterior</button>
-          <button class="btn-ghost btn-small" id="btnNextPage">Próxima ›</button>
+          <select id="filterStatusReav"><option value="">Todos Status Reavaliação</option></select>
+        </div>
+        <div class="table-scroll">
+          <table id="detailTable">
+            <thead><tr>
+              <th class="left">Regional</th>
+              <th class="left">Empreendimento</th>
+              <th class="left">Bloco</th>
+              <th class="left">Unidade</th>
+              <th class="left">Tipologia Real</th>
+              <th class="left">Status Unidade</th>
+              <th>Valor Avaliação</th>
+              <th>Valor do Imóvel</th>
+              <th>Desvio</th>
+              <th>Dias Últ. VA</th>
+              <th class="left">Status</th>
+            </tr></thead>
+            <tbody id="detailTbody"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap-foot">
+          <div class="pager" id="pagerInfo"></div>
+          <div class="pager">
+            <button class="btn-ghost btn-small" id="btnPrevPage">‹ Anterior</button>
+            <button class="btn-ghost btn-small" id="btnNextPage">Próxima ›</button>
+          </div>
         </div>
       </div>
     </div>
@@ -242,18 +300,38 @@ const GITHUB_USER = "SPIPerformance";
 const GITHUB_REPO = "reavaliacaospi";
 const GITHUB_BRANCH = "main";
 
-// Cache buster adicionado para garantir que atualizações no GitHub sejam puxadas imediatamente
 const CACHE_BUSTER = `?t=${new Date().getTime()}`;
 const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx${CACHE_BUSTER}`;
 const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx${CACHE_BUSTER}`;
 const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx${CACHE_BUSTER}`;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Controle de Abas
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Dropdown Checkbox toggle
+  const dropdownBtn = document.getElementById('statusUnidadeDropdownBtn');
+  const dropdownContent = document.getElementById('statusUnidadeContainer');
+  dropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownContent.classList.toggle('show');
+  });
+  window.addEventListener('click', () => {
+    dropdownContent.classList.remove('show');
+  });
+  dropdownContent.addEventListener('click', (e) => e.stopPropagation());
+
   document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderDetailTable(); });
-  document.getElementById('filterStatusUnidade').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterStatusReav').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
 
   document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
@@ -492,13 +570,54 @@ function populateFilters() {
   treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => treeSelReg.innerHTML += `<option value="${r}">${r}</option>`);
 
-  const selStatusUnidade = document.getElementById('filterStatusUnidade');
-  selStatusUnidade.innerHTML = '<option value="">Todos Status Unidade</option>';
-  statusSet.forEach(s => selStatusUnidade.innerHTML += `<option value="${s}">${s}</option>`);
+  // Popular checkboxes de Status da Unidade
+  const statusListEl = document.getElementById('statusUnidadeCheckboxesList');
+  statusListEl.innerHTML = '';
+  statusSet.forEach((s, idx) => {
+    statusListEl.innerHTML += `
+      <label class="checkbox-item">
+        <input type="checkbox" name="statusUnidadeChk" value="${s}" checked> ${s}
+      </label>
+    `;
+  });
+
+  // Eventos para checkboxes de status unidade
+  document.querySelectorAll('input[name="statusUnidadeChk"]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      updateStatusUnidadeBtnText();
+      currentPage = 1;
+      renderDetailTable();
+    });
+  });
+
+  document.getElementById('selectAllStatus').addEventListener('click', (e) => {
+    e.preventDefault();
+    const checkboxes = document.querySelectorAll('input[name="statusUnidadeChk"]');
+    const allChecked = Array.from(checkboxes).every(c => c.checked);
+    checkboxes.forEach(c => c.checked = !allChecked);
+    updateStatusUnidadeBtnText();
+    currentPage = 1;
+    renderDetailTable();
+  });
+
+  updateStatusUnidadeBtnText();
 
   const selStatusReav = document.getElementById('filterStatusReav');
   selStatusReav.innerHTML = '<option value="">Todos Status Reavaliação</option>';
   reavStatusSet.forEach(s => selStatusReav.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function updateStatusUnidadeBtnText() {
+  const checkboxes = document.querySelectorAll('input[name="statusUnidadeChk"]');
+  const checked = Array.from(checkboxes).filter(c => c.checked);
+  const btnText = document.getElementById('statusUnidadeBtnText');
+  if (checked.length === checkboxes.length || checked.length === 0) {
+    btnText.textContent = 'Status Unidade (Todos)';
+  } else if (checked.length === 1) {
+    btnText.textContent = checked[0].value;
+  } else {
+    btnText.textContent = `${checked.length} selecionados`;
+  }
 }
 
 function getTricolorStyle(pct, allPcts) {
@@ -759,13 +878,17 @@ function renderDetailTable() {
 
   const regFilter = document.getElementById('filterRegional').value;
   const empFilter = document.getElementById('filterEmpreendimento').value.toLowerCase();
-  const statusUnidadeFilter = document.getElementById('filterStatusUnidade').value;
+  
+  // Obter status de unidade selecionados nos checkboxes
+  const selectedStatusUnidade = Array.from(document.querySelectorAll('input[name="statusUnidadeChk"]:checked'))
+                                    .map(c => c.value);
+
   const statusReavFilter = document.getElementById('filterStatusReav').value;
 
   let filtered = globalData.filter(d => {
     if(regFilter && d.regional !== regFilter) return false;
     if(empFilter && !d.empreendimento.toLowerCase().includes(empFilter)) return false;
-    if(statusUnidadeFilter && d.statusUnidade !== statusUnidadeFilter) return false;
+    if(selectedStatusUnidade.length > 0 && !selectedStatusUnidade.includes(d.statusUnidade)) return false;
     if(statusReavFilter && d.status !== statusReavFilter) return false;
     return true;
   });
