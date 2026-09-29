@@ -26,8 +26,12 @@
   --ok-bg:#E6F4EA; --ok-fg:#137333;
   --warn-bg:#FEF7E0; --warn-fg:#B06000;
   --crit-bg:#FCE8E6; --crit-fg:#C5221F;
-  --font-body:'IBM Plex Sans',sans-serif;
-  --font-mono:'IBM Plex Mono',monospace;
+  
+  /* Fontes solicitadas */
+  --font-body:'Averta Demo', 'IBM Plex Sans', sans-serif;
+  --font-bold:'Averta-Bold', 'Averta Demo', 'IBM Plex Sans', sans-serif;
+  --font-black:'Averta-Black', 'Averta Demo', 'IBM Plex Sans', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -56,15 +60,23 @@ button{font-family:var(--font-body);}
   padding:20px 24px;gap:24px;flex-wrap:wrap;
   margin-bottom:16px;
 }
-.tb-name{font-weight:700;font-size:22px;letter-spacing:-0.2px;color:var(--ink);}
+.tb-name{
+  font-family: var(--font-black);
+  font-weight: 900;
+  font-size: 24px;
+  letter-spacing: -0.2px;
+  color: #FF8B22; /* Laranja solicitado */
+}
 .tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;background:var(--panel-alt);padding:6px 10px;border-radius:6px;border:1px solid var(--line-soft);}
 .tb-meta b{color:var(--ink);font-weight:600;}
 
 /* Abas */
 .tabs-nav{display:flex;gap:8px;margin-bottom:16px;}
 .tab-btn{
+  font-family: var(--font-bold);
+  font-weight: 700;
   background:#E5E8ED;border:1px solid var(--line);border-bottom:none;
-  border-radius:8px 8px 0 0;padding:10px 22px;font-weight:600;font-size:13.5px;
+  border-radius:8px 8px 0 0;padding:10px 22px;font-size:13.5px;
   cursor:pointer;color:var(--ink-dim);transition:all 0.2s;
 }
 .tab-btn:hover{color:var(--ink);background:#DEE2E8;}
@@ -86,7 +98,9 @@ button{font-family:var(--font-body);}
 }
 .panel + .panel{margin-top:16px;}
 .panel h2{
-  font-weight:600;font-size:15px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  font-size: 15px;
   margin:0 0 16px;color:var(--ink);
 }
 
@@ -105,12 +119,25 @@ button{font-family:var(--font-body);}
   transform: translateY(-2px);
   box-shadow:0 4px 8px rgba(0,0,0,0.05);
 }
-.kpi .label{font-size:11px;color:var(--ink-dim);white-space:nowrap;font-weight:500;}
-.kpi .value{font-family:var(--font-mono);font-weight:700;font-size:18px;color:var(--ink);margin-top:6px;}
+.kpi .label{
+  font-family: var(--font-bold);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.kpi .value{
+  font-family: var(--font-black);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink);
+  margin-top: 6px;
+}
 .kpi .value.crit{color:var(--crit-fg);}
 
 table{width:100%;border-collapse:collapse;font-size:12.8px;}
 thead th{
+  font-family: var(--font-bold);
   text-align:right;font-weight:700;font-size:11.5px;
   color:#fff;background:var(--mrv-green);border-bottom:1px solid var(--mrv-green);padding:10px 12px;
   white-space:nowrap;
@@ -243,9 +270,9 @@ tbody tr:hover{background:#F0F4F8;}
               <span id="statusUnidadeBtnText">Status Unidade (Todos)</span> ▾
             </div>
             <div class="checkbox-dropdown-content" id="statusUnidadeContainer">
-              <div style="font-weight:600; margin-bottom:6px; font-size:11.5px; border-bottom:1px solid var(--line); padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-family:var(--font-bold); font-weight:700; margin-bottom:6px; font-size:11.5px; border-bottom:1px solid var(--line); padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Selecionar Status</span>
-                <a href="#" id="selectAllStatus" style="font-weight:600; font-size:11px; color:var(--mrv-green); text-decoration:none;">Todos</a>
+                <a href="#" id="selectAllStatus" style="font-weight:700; font-size:11px; color:var(--mrv-green); text-decoration:none;">Todos</a>
               </div>
               <div id="statusUnidadeCheckboxesList"></div>
             </div>
