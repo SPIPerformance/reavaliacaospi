@@ -249,7 +249,6 @@ const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_
 const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx`;
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btnRefresh').addEventListener('click', loadDataFromGitHub);
   document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
@@ -562,7 +561,6 @@ function renderTreeTable() {
     node.uhReav += d.uhReav;
   });
 
-  // Coleta separada para escalas independentes
   let regPcts = [];
   let empPcts = [];
   let tipPcts = [];
