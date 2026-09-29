@@ -23,7 +23,6 @@
   --mrv-green:#006B3F;
   --mrv-green-mid:#079D56;
   --mrv-green-bright:#00D38D;
-  --mrv-green-light:#82EA5B;
   --ok-bg:#DCEFDD; --ok-fg:#1E7A34;
   --warn-bg:#FBEBC7; --warn-fg:#8A5A00;
   --crit-bg:#F8D7D7; --crit-fg:#B3261E;
@@ -113,11 +112,20 @@ thead th{
 thead th.left, td.left{text-align:left;}
 tbody td{padding:7px 10px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);font-size:12.3px;white-space:nowrap;}
 tbody td.left{text-align:left;font-family:var(--font-body);}
-tbody tr:nth-child(even){background:var(--panel-alt);}
 tbody tr:hover{background:#EAF0F6;}
+.row-regional{background:#F0F4F2;font-weight:600;cursor:pointer;}
+.row-regional:hover{background:#E2ECE7;}
+.row-emp{background:#F8FAF9;cursor:pointer;display:none;}
+.row-emp:hover{background:#EDF2F0;}
+.row-tip{background:#FFFFFF;display:none;font-size:12px;}
+.row-tip:hover{background:#F5F7F6;}
+
+.tree-toggle{display:inline-block;width:18px;font-weight:bold;color:var(--mrv-green);cursor:pointer;text-align:center;user-select:none;}
+
 .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
 .tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
 .tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
+.tag-warn{color:var(--warn-fg);background:var(--warn-bg);}
 .table-scroll{overflow-x:auto;}
 .table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
 .pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
@@ -144,7 +152,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Leitura automatizada do repositório <b>SPIPerformance/reavaliacaospi</b> (com regras completas de fórmulas e depara).</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrando apenas unidades com regional mapeada.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -160,7 +168,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
 
   <div class="panel">
     <h2>Status do Processamento</h2>
-    <div class="status-line" id="statusLine">Carregando bases do repositório (REL_ETQCMCUNICPE.xlsx, Controle BH.xlsx, depara.xlsx)...</div>
+    <div class="status-line" id="statusLine">Carregando bases do repositório...</div>
   </div>
 
   <div class="section-gap"></div>
@@ -172,21 +180,21 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
     <div class="section-gap"></div>
 
     <div class="panel">
-      <h2>Por regional</h2>
+      <h2>Por regional (Visão em árvore)</h2>
       <div class="table-scroll">
-        <table id="regionalTable">
+        <table id="treeTable">
           <thead><tr>
-            <th class="left">Regional / Empreendimento / Tipologia</th>
+            <th class="left">Rótulos de Linha</th>
             <th>Etq. Disp</th>
             <th>Etq. Livre</th>
             <th>Méd. VA</th>
             <th>Méd. VI</th>
             <th>% Desvio</th>
-            <th>Qtde. Reavaliar</th>
-            <th>% Reavaliar</th>
-            <th>Dias Últ. VA</th>
+            <th>Qtde. UH Reavaliar</th>
+            <th>% UH Reavaliar</th>
+            <th>Dias Última VA</th>
           </tr></thead>
-          <tbody id="regionalTbody"></tbody>
+          <tbody id="treeTbody"></tbody>
         </table>
       </div>
     </div>
@@ -233,7 +241,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Fórmulas aplicadas: <code>VI Final = Valor Imóvel - Bom Pagador - 500</code> | <code>Tipologia Real</code> baseada em Tipologia Ajustada + Varanda4 + Giardino5 + Vaga.
+    Fórmulas aplicadas: <code>VI Final = Valor Imóvel - Bom Pagador - 500</code> | <code>Tipologia Real</code> baseada em Ajustada + Varanda4 + Giardino5 + Vaga.
   </footer>
 
 </div>
@@ -257,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDataFromGitHub();
 });
 
-// Conversão de data serial do Excel para objeto Date
 function excelSerialToDate(serial) {
   if (!serial || isNaN(serial)) return null;
   const utc_days = Math.floor(serial - 25569);
@@ -266,10 +273,9 @@ function excelSerialToDate(serial) {
 
 async function loadDataFromGitHub() {
   const statusLine = document.getElementById('statusLine');
-  const dataSourceLine = document.getElementById('dataSourceLine');
   const tbMeta = document.getElementById('tbMeta');
 
-  statusLine.textContent = 'Baixando arquivos do GitHub (REL_ETQ, Controle BH, depara)...';
+  statusLine.textContent = 'Baixando arquivos do GitHub...';
   statusLine.className = 'status-line';
 
   try {
@@ -293,7 +299,7 @@ async function loadDataFromGitHub() {
     const wbControle = XLSX.read(bufControle, {type: 'array'});
     const wbDepara = XLSX.read(bufDepara, {type: 'array'});
 
-    // 1. Processar Depara (Planilha 'auxiliar')
+    // 1. Processar Depara ('auxiliar')
     const wsDepara = wbDepara.Sheets['auxiliar'] || wbDepara.Sheets[wbDepara.SheetNames[0]];
     const deparaRows = XLSX.utils.sheet_to_json(wsDepara, {header: 1});
     deparaMap = {};
@@ -302,28 +308,25 @@ async function loadDataFromGitHub() {
       if (row && row[7]) { // Coluna H: Empreendimento
         const empName = String(row[7]).trim().toUpperCase();
         const regName = String(row[4] || '').trim(); // Coluna E: Regional
-        if (empName) deparaMap[empName] = regName;
+        if (empName && regName && regName !== 'nan') {
+          deparaMap[empName] = regName;
+        }
       }
     }
 
     // 2. Processar Controle BH
     const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
-    let controleMap = {}; // Chave: EMPREENDIMENTO (upper) -> { ultimaAvaliacao, statusAtual }
+    let controleMap = {};
     if (ctrRows.length > 5) {
-      // Procurar cabeçalho na linha 5 ou varrer
       for (let i = 5; i < ctrRows.length; i++) {
         const row = ctrRows[i];
         if (!row || row.length === 0) continue;
-        const emp = String(row[4] || '').trim().toUpperCase(); // Empreendimento
+        const emp = String(row[4] || '').trim().toUpperCase();
         if (emp) {
-          const serialData = row[11]; // Última avaliação
-          const statusAtual = String(row[15] || '').trim(); // Status Atual
+          const serialData = row[11];
           const dataVA = excelSerialToDate(serialData);
-          controleMap[emp] = {
-            dataVA: dataVA,
-            statusAtual: statusAtual
-          };
+          controleMap[emp] = { dataVA };
         }
       }
     }
@@ -334,7 +337,6 @@ async function loadDataFromGitHub() {
     
     globalData = [];
     if (estRows.length > 6) {
-      // Cabeçalho está na linha 6 (índice 6)
       for (let i = 7; i < estRows.length; i++) {
         const row = estRows[i];
         if (!row || row.length === 0) continue;
@@ -344,73 +346,53 @@ async function loadDataFromGitHub() {
         const empreendimento = String(row[2] || '').trim();
         const bloco = String(row[3] || '').trim();
         const unidade = String(row[4] || '').trim();
-        const tipologiaRaw = String(row[12] || '').trim(); // Tipologia
-        const valorImovel = Number(row[28] || 0); // Valor do Imóvel
-        const avaliacaoBanco = Number(row[29] || 0); // Avaliação Banco Empreendimento
-        const valorBomPagador = Number(row[32] || 0); // Valor Bom Pagador
-        const bpPagadoria = 500; // Sempre 500 conforme regra
-        const statusUnidade = String(row[36] || '').trim(); // Status da Unidade
-        const giardinoRaw = String(row[62] || 'NÃO').trim(); // Giardino
-        const varandaRaw = String(row[63] || 'NÃO').trim(); // Varanda
-        const qtdGaragemTotal = Number(row[65] || 0); // Qtd Garagem Total
+        const tipologiaRaw = String(row[12] || '').trim();
+        const valorImovel = Number(row[28] || 0);
+        const avaliacaoBanco = Number(row[29] || 0);
+        const valorBomPagador = Number(row[32] || 0);
+        const bpPagadoria = 500;
+        const statusUnidade = String(row[36] || '').trim();
+        const giardinoRaw = String(row[62] || 'NÃO').trim();
+        const varandaRaw = String(row[63] || 'NÃO').trim();
+        const qtdGaragemTotal = Number(row[65] || 0);
 
         if (!empreendimento) continue;
 
-        // --- APLICANDO AS FÓRMULAS SOLICITADAS ---
-        
-        // 1. VI Final: =Valor do Imóvel - Valor Bom Pagador - BP Pagadoria (500)
+        // Validar Regional (apenas unidades com regional válida / ignorar sem regional)
+        const empUpper = empreendimento.toUpperCase();
+        const regional = regionalOriginal && regionalOriginal !== 'nan' ? regionalOriginal : deparaMap[empUpper];
+        if (!regional || regional === 'Não Mapeado') continue;
+
+        // Fórmulas
         const viFinal = valorImovel - valorBomPagador - bpPagadoria;
 
-        // 2. Tipologia Ajustada
         let tipAjustada = tipologiaRaw;
         if (tipologiaRaw === '1 Q' || tipologiaRaw === '1 Q + ESC') tipAjustada = '1 Q';
         else if (tipologiaRaw === '2 Q' || tipologiaRaw === '2 Q R') tipAjustada = '2 Q';
 
-        // 3. Varanda4: =SE(BL2<>"NÃO";"V";"") -> usando varandaRaw
         const varanda4 = (varandaRaw.toUpperCase() !== 'NÃO' && varandaRaw !== '') ? 'V' : '';
-
-        // 4. Giardino5: =SE(BK2<>"NÃO";"Qui";"") -> usando giardinoRaw
         const giardino5 = (giardinoRaw.toUpperCase() !== 'NÃO' && giardinoRaw !== '') ? 'Qui' : '';
-
-        // 5. Vaga: =SE(BN2=0;"Sem Vaga";"Com Vaga") -> usando qtdGaragemTotal
         const vaga = qtdGaragemTotal === 0 ? 'Sem Vaga' : 'Com Vaga';
 
-        // 6. Tipologia Real
         let tipReal = tipAjustada;
         if (varanda4) tipReal += ' ' + varanda4;
         if (giardino5) tipReal += ' ' + giardino5;
         tipReal += ' - ' + vaga;
 
-        // 7. Estoque Disp: =SE(OU(Status="Lançado";Status="Exclusivo Plataforma");1;0)
         const estDisp = (statusUnidade === 'Lançado' || statusUnidade === 'Exclusivo Plataforma') ? 1 : 0;
-
-        // 8. Estoque Livre: =SE(OU(Status="Lançado";Status="Exclusivo Plataforma";Status="Não lançado";Status="Bloqueado");1;0)
         const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
 
-        // 9. Regional via PROCX(Empreendimento, auxiliar!H:H, auxiliar!E:E)
-        const empUpper = empreendimento.toUpperCase();
-        const regional = regionalOriginal || deparaMap[empUpper] || 'Não Mapeado';
-
-        // 10. Controle BH (Data última avaliação e Próx Avaliação)
         let dataUltimaAvaliacao = null;
         let diasUltVA = 500;
-        let statusControle = 'Em dia';
-        
-        if (controleMap[empUpper]) {
+        if (controleMap[empUpper] && controleMap[empUpper].dataVA) {
           dataUltimaAvaliacao = controleMap[empUpper].dataVA;
-          statusControle = controleMap[empUpper].statusAtual;
-          if (dataUltimaAvaliacao) {
-            const diffTime = Math.abs(new Date() - dataUltimaAvaliacao);
-            diasUltVA = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          }
+          const diffTime = Math.abs(new Date() - dataUltimaAvaliacao);
+          diasUltVA = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
-        // 11. Reavaliar e UH Reavaliar
-        // =SE([@Estoque Disp]=0;"";SE([@Avaliação Banco Empreendimento]>[@VI Final];"OK";"REAVALIAR"))
-        let reavaliarStr = '';
         let uhReav = 0;
         if (estDisp === 1) {
-          reavaliarStr = (avaliacaoBanco > viFinal) ? 'OK' : 'REAVALIAR';
+          const reavaliarStr = (avaliacaoBanco > viFinal) ? 'OK' : 'REAVALIAR';
           if (reavaliarStr === 'REAVALIAR') uhReav = 1;
         }
 
@@ -437,7 +419,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
+    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas (com regional).`;
     statusLine.className = 'status-line ok';
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
@@ -454,7 +436,7 @@ async function loadDataFromGitHub() {
 function initDashboard() {
   renderKPIs();
   populateFilters();
-  renderRegionalTable();
+  renderTreeTable();
   renderDetailTable();
 }
 
@@ -481,43 +463,174 @@ function populateFilters() {
   });
 }
 
-function renderRegionalTable() {
-  const tbody = document.getElementById('regionalTbody');
+function renderTreeTable() {
+  const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
-  
-  let groups = {};
+
+  // Agrupar dados: Regional -> Empreendimento -> Tipologia
+  let tree = {};
   globalData.forEach(d => {
-    const key = `${d.regional} > ${d.empreendimento} > ${d.tipReal}`;
-    if(!groups[key]) {
-      groups[key] = { reg: d.regional, emp: d.empreendimento, tip: d.tipReal, count: 0, livre: 0, sumVA: 0, sumVI: 0, reav: 0, diasMax: 0 };
+    if (!tree[d.regional]) tree[d.regional] = {};
+    if (!tree[d.regional][d.empreendimento]) tree[d.regional][d.empreendimento] = {};
+    if (!tree[d.regional][d.empreendimento][d.tipReal]) {
+      tree[d.regional][d.empreendimento][d.tipReal] = { disp: 0, livre: 0, sumVA: 0, sumVI: 0, uhReav: 0, count: 0, diasMax: 0 };
     }
-    if (d.estoqueDisp === 1) groups[key].count++;
-    if (d.estoqueLivre === 1) groups[key].livre++;
-    groups[key].sumVA += d.avaliacaoBanco;
-    groups[key].sumVI += d.viFinal;
-    if (d.status === 'Reavaliar') groups[key].reav++;
-    if (d.proxAvaliacao > groups[key].diasMax) groups[key].diasMax = d.proxAvaliacao;
+    const node = tree[d.regional][d.empreendimento][d.tipReal];
+    if (d.estoqueDisp === 1) node.disp++;
+    if (d.estoqueLivre === 1) node.livre++;
+    node.sumVA += d.avaliacaoBanco;
+    node.sumVI += d.viFinal;
+    node.uhReav += d.uhReav;
+    node.count++;
+    if (d.proxAvaliacao > node.diasMax) node.diasMax = d.proxAvaliacao;
   });
 
-  Object.values(groups).forEach(g => {
-    const medVA = g.count ? (g.sumVA / g.count) : 0;
-    const medVI = g.count ? (g.sumVI / g.count) : 0;
-    const desvio = medVI ? ((medVA - medVI) / medVI) * 100 : 0;
-    const pctReav = g.count ? (g.reav / g.count) * 100 : 0;
+  // Totais globais
+  let gDisp = 0, gLivre = 0, gSumVA = 0, gSumVI = 0, gUhReav = 0, gCount = 0;
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="left">${g.reg} / ${g.emp} / <b>${g.tip}</b></td>
-      <td>${g.count}</td>
-      <td>${g.livre}</td>
-      <td>R$ ${medVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>${desvio.toFixed(1)}%</td>
-      <td>${g.reav}</td>
-      <td><span class="tag ${pctReav > 20 ? 'tag-reav' : 'tag-ok'}">${pctReav.toFixed(1)}%</span></td>
-      <td>${g.diasMax} dias</td>
+  Object.keys(tree).sort().forEach(reg => {
+    let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVI = 0, regUhReav = 0, regCount = 0;
+    let regEmpKeys = Object.keys(tree[reg]).sort();
+
+    regEmpKeys.forEach(emp => {
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0, empCount = 0;
+      let empTipKeys = Object.keys(tree[reg][emp]).sort();
+
+      empTipKeys.forEach(tip => {
+        const n = tree[reg][emp][tip];
+        empDisp += n.disp;
+        empLivre += n.livre;
+        empSumVA += n.sumVA;
+        empSumVI += n.sumVI;
+        empUhReav += n.uhReav;
+        empCount += n.count;
+      });
+
+      regDisp += empDisp;
+      regLivre += empLivre;
+      regSumVA += empSumVA;
+      regSumVI += empSumVI;
+      regUhReav += empUhReav;
+      regCount += empCount;
+    });
+
+    gDisp += regDisp; gLivre += regLivre; gSumVA += regSumVA; gSumVI += regSumVI; gUhReav += regUhReav; gCount += regCount;
+
+    const medRegVA = regDisp ? regSumVA / regDisp : 0;
+    const medRegVI = regDisp ? regSumVI / regDisp : 0;
+    const desvioReg = medRegVI ? ((medRegVA - medRegVI) / medRegVI) * 100 : 0;
+    const pctRegReav = regDisp ? (regUhReav / regDisp) * 100 : 0;
+
+    // Linha Regional
+    const trReg = document.createElement('tr');
+    trReg.className = 'row-regional';
+    const regId = 'reg_' + reg.replace(/\s+/g, '_');
+    trReg.dataset.target = regId;
+    trReg.innerHTML = `
+      <td class="left"><span class="tree-toggle" id="toggle_${regId}">+</span> <b>${reg}</b></td>
+      <td>${regDisp}</td>
+      <td>${regLivre}</td>
+      <td>R$ ${medRegVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medRegVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>${desvioReg.toFixed(2)}%</td>
+      <td>${regUhReav}</td>
+      <td><span class="tag ${pctRegReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctRegReav.toFixed(2)}%</span></td>
+      <td>-</td>
     `;
-    tbody.appendChild(tr);
+    tbody.appendChild(trReg);
+
+    // Linhas Empreendimentos
+    regEmpKeys.forEach(emp => {
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0, empCount = 0;
+      let empTipKeys = Object.keys(tree[reg][emp]).sort();
+
+      empTipKeys.forEach(tip => {
+        const n = tree[reg][emp][tip];
+        empDisp += n.disp;
+        empLivre += n.livre;
+        empSumVA += n.sumVA;
+        empSumVI += n.sumVI;
+        empUhReav += n.uhReav;
+        empCount += n.count;
+      });
+
+      const medEmpVA = empDisp ? empSumVA / empDisp : 0;
+      const medEmpVI = empDisp ? empSumVI / empDisp : 0;
+      const desvioEmp = medEmpVI ? ((medEmpVA - medEmpVI) / medEmpVI) * 100 : 0;
+      const pctEmpReav = empDisp ? (empUhReav / empDisp) * 100 : 0;
+
+      const trEmp = document.createElement('tr');
+      trEmp.className = `row-emp ${regId}`;
+      const empId = regId + '_' + emp.replace(/\s+/g, '_');
+      trEmp.dataset.target = empId;
+      trEmp.innerHTML = `
+        <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">+</span> ${emp}</td>
+        <td>${empDisp}</td>
+        <td>${empLivre}</td>
+        <td>R$ ${medEmpVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+        <td>R$ ${medEmpVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+        <td>${desvioEmp.toFixed(2)}%</td>
+        <td>${empUhReav}</td>
+        <td><span class="tag ${pctEmpReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctEmpReav.toFixed(2)}%</span></td>
+        <td>-</td>
+      `;
+      tbody.appendChild(trEmp);
+
+      // Linhas Tipologias
+      empTipKeys.forEach(tip => {
+        const n = tree[reg][emp][tip];
+        const medTipVA = n.disp ? n.sumVA / n.disp : 0;
+        const medTipVI = n.disp ? n.sumVI / n.disp : 0;
+        const desvioTip = medTipVI ? ((medTipVA - medTipVI) / medTipVI) * 100 : 0;
+        const pctTipReav = n.disp ? (n.uhReav / n.disp) * 100 : 0;
+
+        const trTip = document.createElement('tr');
+        trTip.className = `row-tip ${empId}`;
+        trTip.innerHTML = `
+          <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
+          <td>${n.disp}</td>
+          <td>${n.livre}</td>
+          <td>R$ ${medTipVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+          <td>R$ ${medTipVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+          <td>${desvioTip.toFixed(2)}%</td>
+          <td>${n.uhReav}</td>
+          <td><span class="tag ${pctTipReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctTipReav.toFixed(2)}%</span></td>
+          <td>${n.diasMax} dias</td>
+        `;
+        tbody.appendChild(trTip);
+      });
+    });
+  });
+
+  // Eventos de clique para abrir/fechar árvore
+  document.querySelectorAll('.row-regional, .row-emp').forEach(row => {
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetClass = row.dataset.target;
+      const toggleEl = document.getElementById('toggle_' + targetClass);
+      const childRows = document.querySelectorAll('.' + targetClass);
+      
+      const isExpanded = row.classList.contains('expanded');
+      if (isExpanded) {
+        row.classList.remove('expanded');
+        if (toggleEl) toggleEl.textContent = '+';
+        // Recolher filhos e netos
+        childRows.forEach(child => {
+          child.style.display = 'none';
+          child.classList.remove('expanded');
+          const subTarget = child.dataset.target;
+          if (subTarget) {
+            document.querySelectorAll('.' + subTarget).forEach(sub => sub.style.display = 'none');
+            const subToggle = document.getElementById('toggle_' + subTarget);
+            if (subToggle) subToggle.textContent = '+';
+          }
+        });
+      } else {
+        row.classList.add('expanded');
+        if (toggleEl) toggleEl.textContent = '-';
+        childRows.forEach(child => child.style.display = 'table-row');
+      }
+    });
   });
 }
 
