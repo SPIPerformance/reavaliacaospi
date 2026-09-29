@@ -95,8 +95,8 @@ button{font-family:var(--font-body);}
 .status-line.err{color:var(--crit-fg);}
 .status-line.ok{color:var(--ok-fg);}
 
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-@media (max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media (max-width:900px){.kpi-row{grid-template-columns:repeat(1,1fr);}}
 .kpi{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:14px 16px;}
 .kpi .label{font-size:11.5px;color:var(--ink-dim);}
 .kpi .value{font-family:var(--font-mono);font-weight:600;font-size:22px;color:var(--ink);margin-top:5px;}
@@ -151,7 +151,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrando estritamente por REGIONAL retornada via Procx no depara.</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Validação de métricas e datas de avaliação.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -240,7 +240,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Fórmulas aplicadas: <code>Regional = PROCX(Empreendimento; auxiliar!H:H; auxiliar!E:E; "")</code> | Descarte automático de empreendimentos sem regional.
+    Regras aplicadas: Fórmulas de VI Final, Tipologia Real e Dias Última VA integradas. Descarte de empreendimentos sem regional.
   </footer>
 
 </div>
@@ -298,7 +298,7 @@ async function loadDataFromGitHub() {
     const wbControle = XLSX.read(bufControle, {type: 'array'});
     const wbDepara = XLSX.read(bufDepara, {type: 'array'});
 
-    // 1. Processar Depara ('auxiliar') -> Mapeando Empreendimento (Coluna H / índice 7) para Regional (Coluna E / índice 4)
+    // 1. Processar Depara ('auxiliar') -> Coluna H (Empr) -> Coluna E (Regional)
     const wsDepara = wbDepara.Sheets['auxiliar'] || wbDepara.Sheets[wbDepara.SheetNames[0]];
     const deparaRows = XLSX.utils.sheet_to_json(wsDepara, {header: 1});
     deparaMap = {};
@@ -313,7 +313,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    // 2. Processar Controle BH
+    // 2. Processar Controle BH -> Coluna Empr (índice 4), Última avaliação (índice 11)
     const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
@@ -323,9 +323,17 @@ async function loadDataFromGitHub() {
         if (!row || row.length === 0) continue;
         const emp = String(row[4] || '').trim().toUpperCase();
         if (emp) {
-          const serialData = row[11];
-          const dataVA = excelSerialToDate(serialData);
-          controleMap[emp] = { dataVA };
+          const rawDate = row[11];
+          let dataVA = null;
+          if (typeof rawDate === 'number') {
+            dataVA = excelSerialToDate(rawDate);
+          } else if (rawDate) {
+            const parsed = new Date(rawDate);
+            if (!isNaN(parsed)) dataVA = parsed;
+          }
+          if (dataVA) {
+            controleMap[emp] = dataVA;
+          }
         }
       }
     }
@@ -340,11 +348,10 @@ async function loadDataFromGitHub() {
         const row = estRows[i];
         if (!row || row.length === 0) continue;
 
-        // Coluna H (índice 7) é o nome do Empreendimento
-        const empreendimento = String(row[7] || row[2] || '').trim();
+        const empreendimento = String(row[7] || '').trim();
         const cidade = String(row[1] || '').trim();
-        const bloco = String(row[8] || row[3] || '').trim();
-        const unidade = String(row[9] || row[4] || '').trim();
+        const bloco = String(row[8] || '').trim();
+        const unidade = String(row[9] || '').trim();
         const tipologiaRaw = String(row[12] || '').trim();
         const valorImovel = Number(row[28] || 0);
         const avaliacaoBanco = Number(row[29] || 0);
@@ -357,11 +364,10 @@ async function loadDataFromGitHub() {
 
         if (!empreendimento) continue;
 
-        // APLICANDO REGIONAL VIA FÓRMULA PROCX: =PROCX([@Empreendimento]; auxiliar!H:H; auxiliar!E:E; "")
         const empUpper = empreendimento.toUpperCase();
         const regional = deparaMap[empUpper] || '';
         
-        // Se não encontrar regional (empreendimentos sem regional), deve ser desconsiderado conforme solicitado
+        // Descartar se não tiver regional mapeada
         if (!regional) continue;
 
         // Fórmulas
@@ -383,12 +389,11 @@ async function loadDataFromGitHub() {
         const estDisp = (statusUnidade === 'Lançado' || statusUnidade === 'Exclusivo Plataforma') ? 1 : 0;
         const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
 
-        let dataUltimaAvaliacao = null;
-        let diasUltVA = 500;
-        if (controleMap[empUpper] && controleMap[empUpper].dataVA) {
-          dataUltimaAvaliacao = controleMap[empUpper].dataVA;
-          const diffTime = Math.abs(new Date() - dataUltimaAvaliacao);
-          diasUltVA = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        // Dias Última VA
+        let diasUltVA = null;
+        if (controleMap[empUpper]) {
+          const diffTime = new Date() - controleMap[empUpper];
+          diasUltVA = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
         }
 
         let uhReav = 0;
@@ -398,7 +403,7 @@ async function loadDataFromGitHub() {
         }
 
         const desvioVA_VI = avaliacaoBanco - viFinal;
-        const statusFinal = (diasUltVA > 90 || uhReav === 1) ? 'Reavaliar' : 'Em dia';
+        const statusFinal = ((diasUltVA !== null && diasUltVA > 90) || uhReav === 1) ? 'Reavaliar' : 'Em dia';
 
         globalData.push({
           regional,
@@ -414,7 +419,7 @@ async function loadDataFromGitHub() {
           viFinal,
           desvio: desvioVA_VI,
           uhReav,
-          proxAvaliacao: diasUltVA,
+          proxAvaliacao: diasUltVA !== null ? diasUltVA : '',
           status: statusFinal
         });
       }
@@ -448,7 +453,6 @@ function renderKPIs() {
   const reavaliarCount = globalData.filter(d => d.status === 'Reavaliar').length;
   
   kpiRow.innerHTML = `
-    <div class="kpi"><div class="label">Total Unidades</div><div class="value">${globalData.length}</div></div>
     <div class="kpi"><div class="label">Estoque Disponível</div><div class="value">${totalDisp}</div></div>
     <div class="kpi"><div class="label">Estoque Livre</div><div class="value">${totalLivre}</div></div>
     <div class="kpi"><div class="label">Necessidade Reavaliação</div><div class="value crit">${reavaliarCount}</div></div>
@@ -473,24 +477,30 @@ function renderTreeTable() {
     if (!tree[d.regional]) tree[d.regional] = {};
     if (!tree[d.regional][d.empreendimento]) tree[d.regional][d.empreendimento] = {};
     if (!tree[d.regional][d.empreendimento][d.tipReal]) {
-      tree[d.regional][d.empreendimento][d.tipReal] = { disp: 0, livre: 0, sumVA: 0, sumVI: 0, uhReav: 0, count: 0, diasMax: 0 };
+      tree[d.regional][d.empreendimento][d.tipReal] = { disp: 0, livre: 0, sumVA: 0, countVA: 0, sumVI: 0, countVI: 0, uhReav: 0, diasMax: 0 };
     }
     const node = tree[d.regional][d.empreendimento][d.tipReal];
     if (d.estoqueDisp === 1) node.disp++;
     if (d.estoqueLivre === 1) node.livre++;
-    node.sumVA += d.avaliacaoBanco;
-    node.sumVI += d.viFinal;
+    
+    if (d.avaliacaoBanco > 0) {
+      node.sumVA += d.avaliacaoBanco;
+      node.countVA++;
+    }
+    if (d.viFinal > 0) {
+      node.sumVI += d.viFinal;
+      node.countVI++;
+    }
     node.uhReav += d.uhReav;
-    node.count++;
-    if (d.proxAvaliacao > node.diasMax) node.diasMax = d.proxAvaliacao;
+    if (d.proxAvaliacao !== '' && d.proxAvaliacao > node.diasMax) node.diasMax = d.proxAvaliacao;
   });
 
   Object.keys(tree).sort().forEach(reg => {
-    let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVI = 0, regUhReav = 0;
+    let regDisp = 0, regLivre = 0, regSumVA = 0, regCountVA = 0, regSumVI = 0, regCountVI = 0, regUhReav = 0, regDiasMax = 0;
     let regEmpKeys = Object.keys(tree[reg]).sort();
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0, empDiasMax = 0;
       let empTipKeys = Object.keys(tree[reg][emp]).sort();
 
       empTipKeys.forEach(tip => {
@@ -498,23 +508,28 @@ function renderTreeTable() {
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
+        empCountVA += n.countVA;
         empSumVI += n.sumVI;
+        empCountVI += n.countVI;
         empUhReav += n.uhReav;
+        if (n.diasMax > empDiasMax) empDiasMax = n.diasMax;
       });
 
       regDisp += empDisp;
       regLivre += empLivre;
       regSumVA += empSumVA;
+      regCountVA += empCountVA;
       regSumVI += empSumVI;
+      regCountVI += empCountVI;
       regUhReav += empUhReav;
+      if (empDiasMax > regDiasMax) regDiasMax = empDiasMax;
     });
 
-    const medRegVA = regDisp ? regSumVA / regDisp : 0;
-    const medRegVI = regDisp ? regSumVI / regDisp : 0;
+    const medRegVA = regCountVA ? regSumVA / regCountVA : 0;
+    const medRegVI = regCountVI ? regSumVI / regCountVI : 0;
     const desvioReg = medRegVI ? ((medRegVA - medRegVI) / medRegVI) * 100 : 0;
     const pctRegReav = regDisp ? (regUhReav / regDisp) * 100 : 0;
 
-    // Linha Regional
     const trReg = document.createElement('tr');
     trReg.className = 'row-regional';
     const regId = 'reg_' + reg.replace(/\s+/g, '_');
@@ -528,13 +543,12 @@ function renderTreeTable() {
       <td>${desvioReg.toFixed(2)}%</td>
       <td>${regUhReav}</td>
       <td><span class="tag ${pctRegReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctRegReav.toFixed(2)}%</span></td>
-      <td>-</td>
+      <td>${regDiasMax > 0 ? regDiasMax + ' dias' : '-'}</td>
     `;
     tbody.appendChild(trReg);
 
-    // Linhas Empreendimentos
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0, empDiasMax = 0;
       let empTipKeys = Object.keys(tree[reg][emp]).sort();
 
       empTipKeys.forEach(tip => {
@@ -542,12 +556,15 @@ function renderTreeTable() {
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
+        empCountVA += n.countVA;
         empSumVI += n.sumVI;
+        empCountVI += n.countVI;
         empUhReav += n.uhReav;
+        if (n.diasMax > empDiasMax) empDiasMax = n.diasMax;
       });
 
-      const medEmpVA = empDisp ? empSumVA / empDisp : 0;
-      const medEmpVI = empDisp ? empSumVI / empDisp : 0;
+      const medEmpVA = empCountVA ? empSumVA / empCountVA : 0;
+      const medEmpVI = empCountVI ? empSumVI / empCountVI : 0;
       const desvioEmp = medEmpVI ? ((medEmpVA - medEmpVI) / medEmpVI) * 100 : 0;
       const pctEmpReav = empDisp ? (empUhReav / empDisp) * 100 : 0;
 
@@ -564,15 +581,14 @@ function renderTreeTable() {
         <td>${desvioEmp.toFixed(2)}%</td>
         <td>${empUhReav}</td>
         <td><span class="tag ${pctEmpReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctEmpReav.toFixed(2)}%</span></td>
-        <td>-</td>
+        <td>${empDiasMax > 0 ? empDiasMax + ' dias' : '-'}</td>
       `;
       tbody.appendChild(trEmp);
 
-      // Linhas Tipologias
       empTipKeys.forEach(tip => {
         const n = tree[reg][emp][tip];
-        const medTipVA = n.disp ? n.sumVA / n.disp : 0;
-        const medTipVI = n.disp ? n.sumVI / n.disp : 0;
+        const medTipVA = n.countVA ? n.sumVA / n.countVA : 0;
+        const medTipVI = n.countVI ? n.sumVI / n.countVI : 0;
         const desvioTip = medTipVI ? ((medTipVA - medTipVI) / medTipVI) * 100 : 0;
         const pctTipReav = n.disp ? (n.uhReav / n.disp) * 100 : 0;
 
@@ -587,14 +603,13 @@ function renderTreeTable() {
           <td>${desvioTip.toFixed(2)}%</td>
           <td>${n.uhReav}</td>
           <td><span class="tag ${pctTipReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctTipReav.toFixed(2)}%</span></td>
-          <td>${n.diasMax} dias</td>
+          <td>${n.diasMax > 0 ? n.diasMax + ' dias' : '-'}</td>
         `;
         tbody.appendChild(trTip);
       });
     });
   });
 
-  // Eventos de clique para abrir/fechar árvore
   document.querySelectorAll('.row-regional, .row-emp').forEach(row => {
     row.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -657,7 +672,7 @@ function renderDetailTable() {
       <td>R$ ${d.avaliacaoBanco.toLocaleString('pt-BR')}</td>
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
       <td>${d.desvio.toLocaleString('pt-BR')}</td>
-      <td>${d.proxAvaliacao}</td>
+      <td>${d.proxAvaliacao !== '' ? d.proxAvaliacao + ' dias' : '-'}</td>
       <td class="left"><span class="tag ${d.status === 'Reavaliar' ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
     `;
     tbody.appendChild(tr);
