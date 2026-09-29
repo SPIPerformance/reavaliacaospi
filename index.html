@@ -125,7 +125,6 @@ tbody tr:hover{background:#EAF0F6;}
 .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
 .tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
 .tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
-.tag-warn{color:var(--warn-fg);background:var(--warn-bg);}
 .table-scroll{overflow-x:auto;}
 .table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
 .pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
@@ -152,7 +151,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrando apenas unidades com regional mapeada.</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrando estritamente por REGIONAL retornada via Procx no depara.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -241,7 +240,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Fórmulas aplicadas: <code>VI Final = Valor Imóvel - Bom Pagador - 500</code> | <code>Tipologia Real</code> baseada em Ajustada + Varanda4 + Giardino5 + Vaga.
+    Fórmulas aplicadas: <code>Regional = PROCX(Empreendimento; auxiliar!H:H; auxiliar!E:E; "")</code> | Descarte automático de empreendimentos sem regional.
   </footer>
 
 </div>
@@ -299,15 +298,15 @@ async function loadDataFromGitHub() {
     const wbControle = XLSX.read(bufControle, {type: 'array'});
     const wbDepara = XLSX.read(bufDepara, {type: 'array'});
 
-    // 1. Processar Depara ('auxiliar')
+    // 1. Processar Depara ('auxiliar') -> Mapeando Empreendimento (Coluna H / índice 7) para Regional (Coluna E / índice 4)
     const wsDepara = wbDepara.Sheets['auxiliar'] || wbDepara.Sheets[wbDepara.SheetNames[0]];
     const deparaRows = XLSX.utils.sheet_to_json(wsDepara, {header: 1});
     deparaMap = {};
     for (let i = 1; i < deparaRows.length; i++) {
       const row = deparaRows[i];
-      if (row && row[7]) { // Coluna H: Empreendimento
+      if (row && row[7]) { 
         const empName = String(row[7]).trim().toUpperCase();
-        const regName = String(row[4] || '').trim(); // Coluna E: Regional
+        const regName = String(row[4] || '').trim(); 
         if (empName && regName && regName !== 'nan') {
           deparaMap[empName] = regName;
         }
@@ -341,11 +340,11 @@ async function loadDataFromGitHub() {
         const row = estRows[i];
         if (!row || row.length === 0) continue;
 
-        const regionalOriginal = String(row[0] || '').trim();
+        // Coluna H (índice 7) é o nome do Empreendimento
+        const empreendimento = String(row[7] || row[2] || '').trim();
         const cidade = String(row[1] || '').trim();
-        const empreendimento = String(row[2] || '').trim();
-        const bloco = String(row[3] || '').trim();
-        const unidade = String(row[4] || '').trim();
+        const bloco = String(row[8] || row[3] || '').trim();
+        const unidade = String(row[9] || row[4] || '').trim();
         const tipologiaRaw = String(row[12] || '').trim();
         const valorImovel = Number(row[28] || 0);
         const avaliacaoBanco = Number(row[29] || 0);
@@ -358,10 +357,12 @@ async function loadDataFromGitHub() {
 
         if (!empreendimento) continue;
 
-        // Validar Regional (apenas unidades com regional válida / ignorar sem regional)
+        // APLICANDO REGIONAL VIA FÓRMULA PROCX: =PROCX([@Empreendimento]; auxiliar!H:H; auxiliar!E:E; "")
         const empUpper = empreendimento.toUpperCase();
-        const regional = regionalOriginal && regionalOriginal !== 'nan' ? regionalOriginal : deparaMap[empUpper];
-        if (!regional || regional === 'Não Mapeado') continue;
+        const regional = deparaMap[empUpper] || '';
+        
+        // Se não encontrar regional (empreendimentos sem regional), deve ser desconsiderado conforme solicitado
+        if (!regional) continue;
 
         // Fórmulas
         const viFinal = valorImovel - valorBomPagador - bpPagadoria;
@@ -419,7 +420,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas (com regional).`;
+    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
     statusLine.className = 'status-line ok';
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
@@ -467,7 +468,6 @@ function renderTreeTable() {
   const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
 
-  // Agrupar dados: Regional -> Empreendimento -> Tipologia
   let tree = {};
   globalData.forEach(d => {
     if (!tree[d.regional]) tree[d.regional] = {};
@@ -485,15 +485,12 @@ function renderTreeTable() {
     if (d.proxAvaliacao > node.diasMax) node.diasMax = d.proxAvaliacao;
   });
 
-  // Totais globais
-  let gDisp = 0, gLivre = 0, gSumVA = 0, gSumVI = 0, gUhReav = 0, gCount = 0;
-
   Object.keys(tree).sort().forEach(reg => {
-    let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVI = 0, regUhReav = 0, regCount = 0;
+    let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVI = 0, regUhReav = 0;
     let regEmpKeys = Object.keys(tree[reg]).sort();
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0, empCount = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0;
       let empTipKeys = Object.keys(tree[reg][emp]).sort();
 
       empTipKeys.forEach(tip => {
@@ -503,7 +500,6 @@ function renderTreeTable() {
         empSumVA += n.sumVA;
         empSumVI += n.sumVI;
         empUhReav += n.uhReav;
-        empCount += n.count;
       });
 
       regDisp += empDisp;
@@ -511,10 +507,7 @@ function renderTreeTable() {
       regSumVA += empSumVA;
       regSumVI += empSumVI;
       regUhReav += empUhReav;
-      regCount += empCount;
     });
-
-    gDisp += regDisp; gLivre += regLivre; gSumVA += regSumVA; gSumVI += regSumVI; gUhReav += regUhReav; gCount += regCount;
 
     const medRegVA = regDisp ? regSumVA / regDisp : 0;
     const medRegVI = regDisp ? regSumVI / regDisp : 0;
@@ -541,7 +534,7 @@ function renderTreeTable() {
 
     // Linhas Empreendimentos
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0, empCount = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVI = 0, empUhReav = 0;
       let empTipKeys = Object.keys(tree[reg][emp]).sort();
 
       empTipKeys.forEach(tip => {
@@ -551,7 +544,6 @@ function renderTreeTable() {
         empSumVA += n.sumVA;
         empSumVI += n.sumVI;
         empUhReav += n.uhReav;
-        empCount += n.count;
       });
 
       const medEmpVA = empDisp ? empSumVA / empDisp : 0;
@@ -561,7 +553,7 @@ function renderTreeTable() {
 
       const trEmp = document.createElement('tr');
       trEmp.className = `row-emp ${regId}`;
-      const empId = regId + '_' + emp.replace(/\s+/g, '_');
+      const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
       trEmp.innerHTML = `
         <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">+</span> ${emp}</td>
@@ -614,7 +606,6 @@ function renderTreeTable() {
       if (isExpanded) {
         row.classList.remove('expanded');
         if (toggleEl) toggleEl.textContent = '+';
-        // Recolher filhos e netos
         childRows.forEach(child => {
           child.style.display = 'none';
           child.classList.remove('expanded');
