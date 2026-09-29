@@ -271,10 +271,24 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDataFromGitHub();
 });
 
-function excelSerialToDate(serial) {
-  if (!serial || isNaN(serial)) return null;
-  const utc_days = Math.floor(serial - 25569);
-  return new Date(utc_days * 86400 * 1000);
+function parseExcelDate(val) {
+  if (!val) return null;
+  if (val instanceof Date && !isNaN(val)) return val;
+  if (typeof val === 'number') {
+    const utc_days = Math.floor(val - 25569);
+    return new Date(utc_days * 86400 * 1000);
+  }
+  if (typeof val === 'string') {
+    const s = val.trim();
+    // Se for formato brasileiro DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const parts = s.split('/');
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    const d = new Date(s);
+    if (!isNaN(d)) return d;
+  }
+  return null;
 }
 
 async function loadDataFromGitHub() {
@@ -336,15 +350,11 @@ async function loadDataFromGitHub() {
           const emp = String(row[empColIdx] || '').trim().toUpperCase();
           if (emp) {
             const rawDate = row[dateColIdx];
-            let dataVA = null;
-            if (typeof rawDate === 'number') {
-              dataVA = excelSerialToDate(rawDate);
-            } else if (rawDate) {
-              const parsed = new Date(rawDate);
-              if (!isNaN(parsed)) dataVA = parsed;
-            }
+            const dataVA = parseExcelDate(rawDate);
             if (dataVA) {
-              controleMap[emp] = dataVA;
+              if (!controleMap[emp] || dataVA > controleMap[emp]) {
+                controleMap[emp] = dataVA;
+              }
             }
           }
         }
@@ -557,7 +567,7 @@ function renderTreeTable() {
     }
     
     if (d.proxAvaliacao !== '') {
-      if (tree[d.regional][d.empreendimento].diasVA === null || d.proxAvaliacao > tree[d.regional][d.empreendimento].diasVA) {
+      if (tree[d.regional][d.empreendimento].diasVA === null || d.proxAvaliacao < tree[d.regional][d.empreendimento].diasVA) {
         tree[d.regional][d.empreendimento].diasVA = d.proxAvaliacao;
       }
     }
