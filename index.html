@@ -671,23 +671,15 @@ function updateStatusUnidadeBtnText() {
   }
 }
 
-function getTricolorStyle(pct, allPcts) {
-  if (isNaN(pct) || allPcts.length === 0) return '';
-  const sorted = [...allPcts].sort((a, b) => a - b);
-  const getPercentile = (val) => {
-    const idx = sorted.findIndex(v => v >= val);
-    if (idx === -1) return 100;
-    return (idx / (sorted.length - 1)) * 100;
-  };
-  const p = getPercentile(pct);
-  
+function getTricolorStyle(pct) {
+  if (isNaN(pct)) return '';
   let bg = '', fg = '';
-  if (p <= 30) {
-    bg = '#E6F4EA'; fg = '#137333';
-  } else if (p <= 70) {
-    bg = '#FEF7E0'; fg = '#B06000';
+  if (pct === 0) {
+    bg = '#E6F4EA'; fg = '#137333'; // Verde (0% - Ótimo)
+  } else if (pct <= 20) {
+    bg = '#FEF7E0'; fg = '#B06000'; // Amarelo/Alerta (Até 20%)
   } else {
-    bg = '#FCE8E6'; fg = '#C5221F';
+    bg = '#FCE8E6'; fg = '#C5221F'; // Vermelho (> 20% até 100%)
   }
   return `background-color: ${bg}; color: ${fg}; padding: 3px 8px; border-radius: 4px; font-weight: 600;`;
 }
@@ -740,28 +732,6 @@ function renderTreeTable() {
     node.uhReav += d.uhReav;
   });
 
-  let regPcts = [];
-  let empPcts = [];
-  let tipPcts = [];
-
-  Object.keys(tree).forEach(reg => {
-    let rDisp = 0, rReav = 0;
-    Object.keys(tree[reg]).forEach(emp => {
-      let eDisp = 0, eReav = 0;
-      Object.keys(tree[reg][emp].tips).forEach(tip => {
-        const n = tree[reg][emp].tips[tip];
-        eDisp += n.disp;
-        eReav += n.uhReav;
-        const tPct = n.disp > 0 ? (n.uhReav / n.disp) * 100 : 0;
-        tipPcts.push(tPct);
-      });
-      rDisp += eDisp;
-      rReav += eReav;
-      if (eDisp > 0) empPcts.push((eReav / eDisp) * 100);
-    });
-    if (rDisp > 0) regPcts.push((rReav / rDisp) * 100);
-  });
-
   const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
 
   Object.keys(tree).sort().forEach(reg => {
@@ -805,7 +775,7 @@ function renderTreeTable() {
     const autoExpand = empFilterVal !== '' ? 'expanded' : '';
     if (autoExpand) trReg.classList.add('expanded');
 
-    const styleRegPct = getTricolorStyle(pctRegReav, regPcts);
+    const styleRegPct = getTricolorStyle(pctRegReav);
 
     trReg.innerHTML = `
       <td class="left"><span class="tree-toggle" id="toggle_${regId}">${autoExpand ? '-' : '+'}</span> <b>${reg}</b></td>
@@ -848,7 +818,7 @@ function renderTreeTable() {
       const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
       
-      const styleEmpPct = getTricolorStyle(pctEmpReav, empPcts);
+      const styleEmpPct = getTricolorStyle(pctEmpReav);
       const styleEmpDays = getDaysColorStyle(empDias);
 
       trEmp.innerHTML = `
@@ -875,7 +845,7 @@ function renderTreeTable() {
         trTip.className = `row-tip ${empId}`;
         if (autoExpand) trTip.style.display = 'table-row';
 
-        const styleTipPct = getTricolorStyle(pctTipReav, tipPcts);
+        const styleTipPct = getTricolorStyle(pctTipReav);
 
         trTip.innerHTML = `
           <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
