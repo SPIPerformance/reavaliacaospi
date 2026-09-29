@@ -318,22 +318,34 @@ async function loadDataFromGitHub() {
     const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
-    if (ctrRows.length > 5) {
-      for (let i = 5; i < ctrRows.length; i++) {
-        const row = ctrRows[i];
-        if (!row || row.length === 0) continue;
-        const emp = String(row[4] || '').trim().toUpperCase();
-        if (emp) {
-          const rawDate = row[11];
-          let dataVA = null;
-          if (typeof rawDate === 'number') {
-            dataVA = excelSerialToDate(rawDate);
-          } else if (rawDate) {
-            const parsed = new Date(rawDate);
-            if (!isNaN(parsed)) dataVA = parsed;
-          }
-          if (dataVA) {
-            controleMap[emp] = dataVA;
+    if (ctrRows.length > 0) {
+      const headerRow = ctrRows[0];
+      let empColIdx = -1;
+      let dateColIdx = -1;
+      
+      headerRow.forEach((colName, idx) => {
+        const c = String(colName || '').trim().toLowerCase();
+        if (c.includes('empreendimento')) empColIdx = idx;
+        if (c.includes('última avaliação') || c.includes('ultima avaliacao')) dateColIdx = idx;
+      });
+
+      if (empColIdx !== -1 && dateColIdx !== -1) {
+        for (let i = 1; i < ctrRows.length; i++) {
+          const row = ctrRows[i];
+          if (!row || row.length === 0) continue;
+          const emp = String(row[empColIdx] || '').trim().toUpperCase();
+          if (emp) {
+            const rawDate = row[dateColIdx];
+            let dataVA = null;
+            if (typeof rawDate === 'number') {
+              dataVA = excelSerialToDate(rawDate);
+            } else if (rawDate) {
+              const parsed = new Date(rawDate);
+              if (!isNaN(parsed)) dataVA = parsed;
+            }
+            if (dataVA) {
+              controleMap[emp] = dataVA;
+            }
           }
         }
       }
