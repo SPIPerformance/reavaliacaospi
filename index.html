@@ -122,9 +122,6 @@ tbody tr:hover{background:#EAF0F6;}
 
 .tree-toggle{display:inline-block;width:18px;font-weight:bold;color:var(--mrv-green);cursor:pointer;text-align:center;user-select:none;}
 
-.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
-.tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
-.tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
 .table-scroll{overflow-x:auto;}
 .table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
 .pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
@@ -151,7 +148,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrado por escopo padrão de empreendimentos.</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Alinhado com a Tabela Dinâmica.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -247,7 +244,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Painel integrado com escopo padrão fixo de empreendimentos.
+    Painel integrado com regras idênticas à Tabela Dinâmica.
   </footer>
 
 </div>
@@ -258,7 +255,6 @@ let deparaMap = {};
 let currentPage = 1;
 const pageSize = 50;
 
-// Lista padrão e definitiva de empreendimentos permitidos
 const ALLOWED_EMPREENDIMENTOS = new Set([
   "BARÃO DE BARCELOS", "CITY GALLERIA", "COLINA DO SOL", "CORES DA ILHA", "CORES DO CAMPO",
   "EPARQUE RIO PRETO LESTE MÓDULO 03", "FIORENTTINO RESIDENCE", "GRAN CAMPOLIM", "GRAN PRIMAVERA",
@@ -330,7 +326,6 @@ async function loadDataFromGitHub() {
     const wbControle = XLSX.read(bufControle, {type: 'array'});
     const wbDepara = XLSX.read(bufDepara, {type: 'array'});
 
-    // 1. Processar Depara ('auxiliar')
     const wsDepara = wbDepara.Sheets['auxiliar'] || wbDepara.Sheets[wbDepara.SheetNames[0]];
     const deparaRows = XLSX.utils.sheet_to_json(wsDepara, {header: 1});
     deparaMap = {};
@@ -345,7 +340,6 @@ async function loadDataFromGitHub() {
       }
     }
 
-    // 2. Processar Controle BH
     const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
@@ -370,7 +364,6 @@ async function loadDataFromGitHub() {
       }
     }
 
-    // 3. Processar Base de Estoque (REL_ETQ) com filtro da lista padrão
     const wsEstoque = wbEstoque.Sheets[wbEstoque.SheetNames[0]];
     const estRows = XLSX.utils.sheet_to_json(wsEstoque, {header: 1});
     
@@ -383,7 +376,6 @@ async function loadDataFromGitHub() {
         const empreendimento = String(row[7] || '').trim();
         const empUpper = empreendimento.toUpperCase();
 
-        // FILTRO OBRIGATÓRIO: Apenas empreendimentos da lista padrão
         if (!ALLOWED_EMPREENDIMENTOS.has(empUpper)) continue;
 
         const cidade = String(row[1] || '').trim();
@@ -418,7 +410,7 @@ async function loadDataFromGitHub() {
         tipReal += ' - ' + vaga;
 
         const estDisp = (statusUnidade === 'Lançado' || statusUnidade === 'Exclusivo Plataforma') ? 1 : 0;
-        const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
+        const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não Lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
 
         let diasUltVA = null;
         if (controleMap[empUpper]) {
@@ -455,7 +447,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas (escopo padrão aplicado).`;
+    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
     statusLine.className = 'status-line ok';
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
@@ -505,6 +497,29 @@ function populateFilters() {
   });
 }
 
+// Função auxiliar para calcular cor tricolor (Verde -> Amarelo -> Vermelho) por percentil conforme imagem
+function getTricolorStyle(pct, allPcts) {
+  if (isNaN(pct)) return '';
+  const sorted = [...allPcts].sort((a, b) => a - b);
+  const getPercentile = (val) => {
+    const idx = sorted.findIndex(v => v >= val);
+    if (idx === -1) return 100;
+    return (idx / (sorted.length - 1)) * 100;
+  };
+  const p = getPercentile(pct);
+  
+  // Cores exatas solicitadas: 0% Verde (#DCEFDD / #1E7A34), 30% Amarelo (#FBEBC7 / #8A5A00), 100% Vermelho (#F8D7D7 / #B3261E)
+  let bg = '', fg = '';
+  if (p <= 30) {
+    bg = '#DCEFDD'; fg = '#1E7A34';
+  } else if (p <= 70) {
+    bg = '#FBEBC7'; fg = '#8A5A00';
+  } else {
+    bg = '#F8D7D7'; fg = '#B3261E';
+  }
+  return `background-color: ${bg}; color: ${fg}; padding: 2px 8px; border-radius: 3px; font-weight: 600;`;
+}
+
 function renderTreeTable() {
   const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
@@ -518,11 +533,21 @@ function renderTreeTable() {
     if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return;
 
     if (!tree[d.regional]) tree[d.regional] = {};
-    if (!tree[d.regional][d.empreendimento]) tree[d.regional][d.empreendimento] = {};
-    if (!tree[d.regional][d.empreendimento][d.tipReal]) {
-      tree[d.regional][d.empreendimento][d.tipReal] = { disp: 0, livre: 0, sumVA: 0, countVA: 0, sumVI: 0, countVI: 0, uhReav: 0, diasMax: 0 };
+    if (!tree[d.regional][d.empreendimento]) {
+      tree[d.regional][d.empreendimento] = { tips: {}, diasVA: null };
     }
-    const node = tree[d.regional][d.empreendimento][d.tipReal];
+    
+    // Armazenar Dias Última VA por empreendimento
+    if (d.proxAvaliacao !== '') {
+      if (tree[d.regional][d.empreendimento].diasVA === null || d.proxAvaliacao > tree[d.regional][d.empreendimento].diasVA) {
+        tree[d.regional][d.empreendimento].diasVA = d.proxAvaliacao;
+      }
+    }
+
+    if (!tree[d.regional][d.empreendimento].tips[d.tipReal]) {
+      tree[d.regional][d.empreendimento].tips[d.tipReal] = { disp: 0, livre: 0, sumVA: 0, countVA: 0, sumVI: 0, countVI: 0, uhReav: 0 };
+    }
+    const node = tree[d.regional][d.empreendimento].tips[d.tipReal];
     if (d.estoqueDisp === 1) node.disp++;
     if (d.estoqueLivre === 1) node.livre++;
     
@@ -535,7 +560,20 @@ function renderTreeTable() {
       node.countVI++;
     }
     node.uhReav += d.uhReav;
-    if (d.proxAvaliacao !== '' && d.proxAvaliacao > node.diasMax) node.diasMax = d.proxAvaliacao;
+  });
+
+  // Coleta de todos os percentuais % UH Reavaliar para formatação tricolor
+  let allPcts = [];
+  Object.keys(tree).forEach(reg => {
+    Object.keys(tree[reg]).forEach(emp => {
+      let empDisp = 0, empUhReav = 0;
+      Object.keys(tree[reg][emp].tips).forEach(tip => {
+        const n = tree[reg][emp].tips[tip];
+        empDisp += n.disp;
+        empUhReav += n.uhReav;
+      });
+      if (empDisp > 0) allPcts.push((empUhReav / empDisp) * 100);
+    });
   });
 
   Object.keys(tree).sort().forEach(reg => {
@@ -543,11 +581,11 @@ function renderTreeTable() {
     let regEmpKeys = Object.keys(tree[reg]).sort();
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0, empDiasMax = 0;
-      let empTipKeys = Object.keys(tree[reg][emp]).sort();
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0;
+      let empTipKeys = Object.keys(tree[reg][emp].tips).sort();
 
       empTipKeys.forEach(tip => {
-        const n = tree[reg][emp][tip];
+        const n = tree[reg][emp].tips[tip];
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
@@ -555,7 +593,6 @@ function renderTreeTable() {
         empSumVI += n.sumVI;
         empCountVI += n.countVI;
         empUhReav += n.uhReav;
-        if (n.diasMax > empDiasMax) empDiasMax = n.diasMax;
       });
 
       regDisp += empDisp;
@@ -565,7 +602,9 @@ function renderTreeTable() {
       regSumVI += empSumVI;
       regCountVI += empCountVI;
       regUhReav += empUhReav;
-      if (empDiasMax > regDiasMax) regDiasMax = empDiasMax;
+      
+      const empDias = tree[reg][emp].diasVA;
+      if (empDias !== null && empDias > regDiasMax) regDiasMax = empDias;
     });
 
     const medRegVA = regCountVA ? regSumVA / regCountVA : 0;
@@ -581,6 +620,8 @@ function renderTreeTable() {
     const autoExpand = empFilterVal !== '' ? 'expanded' : '';
     if (autoExpand) trReg.classList.add('expanded');
 
+    const styleRegPct = getTricolorStyle(pctRegReav, allPcts);
+
     trReg.innerHTML = `
       <td class="left"><span class="tree-toggle" id="toggle_${regId}">${autoExpand ? '-' : '+'}</span> <b>${reg}</b></td>
       <td>${regDisp}</td>
@@ -589,17 +630,17 @@ function renderTreeTable() {
       <td>R$ ${medRegVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>${desvioReg.toFixed(2)}%</td>
       <td>${regUhReav}</td>
-      <td><span class="tag ${pctRegReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctRegReav.toFixed(2)}%</span></td>
+      <td><span style="${styleRegPct}">${pctRegReav.toFixed(2)}%</span></td>
       <td>${regDiasMax > 0 ? regDiasMax + ' dias' : '-'}</td>
     `;
     tbody.appendChild(trReg);
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0, empDiasMax = 0;
-      let empTipKeys = Object.keys(tree[reg][emp]).sort();
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0;
+      let empTipKeys = Object.keys(tree[reg][emp].tips).sort();
 
       empTipKeys.forEach(tip => {
-        const n = tree[reg][emp][tip];
+        const n = tree[reg][emp].tips[tip];
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
@@ -607,13 +648,13 @@ function renderTreeTable() {
         empSumVI += n.sumVI;
         empCountVI += n.countVI;
         empUhReav += n.uhReav;
-        if (n.diasMax > empDiasMax) empDiasMax = n.diasMax;
       });
 
       const medEmpVA = empCountVA ? empSumVA / empCountVA : 0;
       const medEmpVI = empCountVI ? empSumVI / empCountVI : 0;
       const desvioEmp = medEmpVI ? ((medEmpVA - medEmpVI) / medEmpVI) * 100 : 0;
       const pctEmpReav = empDisp ? (empUhReav / empDisp) * 100 : 0;
+      const empDias = tree[reg][emp].diasVA;
 
       const trEmp = document.createElement('tr');
       trEmp.className = `row-emp ${regId} ${autoExpand}`;
@@ -621,6 +662,9 @@ function renderTreeTable() {
 
       const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
+      
+      const styleEmpPct = getTricolorStyle(pctEmpReav, allPcts);
+
       trEmp.innerHTML = `
         <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">${autoExpand ? '-' : '+'}</span> ${emp}</td>
         <td>${empDisp}</td>
@@ -629,13 +673,13 @@ function renderTreeTable() {
         <td>R$ ${medEmpVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
         <td>${desvioEmp.toFixed(2)}%</td>
         <td>${empUhReav}</td>
-        <td><span class="tag ${pctEmpReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctEmpReav.toFixed(2)}%</span></td>
-        <td>${empDiasMax > 0 ? empDiasMax + ' dias' : '-'}</td>
+        <td><span style="${styleEmpPct}">${pctEmpReav.toFixed(2)}%</span></td>
+        <td>${empDias !== null ? empDias + ' dias' : '-'}</td>
       `;
       tbody.appendChild(trEmp);
 
       empTipKeys.forEach(tip => {
-        const n = tree[reg][emp][tip];
+        const n = tree[reg][emp].tips[tip];
         const medTipVA = n.countVA ? n.sumVA / n.countVA : 0;
         const medTipVI = n.countVI ? n.sumVI / n.countVI : 0;
         const desvioTip = medTipVI ? ((medTipVA - medTipVI) / medTipVI) * 100 : 0;
@@ -645,6 +689,8 @@ function renderTreeTable() {
         trTip.className = `row-tip ${empId}`;
         if (autoExpand) trTip.style.display = 'table-row';
 
+        const styleTipPct = getTricolorStyle(pctTipReav, allPcts);
+
         trTip.innerHTML = `
           <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
           <td>${n.disp}</td>
@@ -653,8 +699,8 @@ function renderTreeTable() {
           <td>R$ ${medTipVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
           <td>${desvioTip.toFixed(2)}%</td>
           <td>${n.uhReav}</td>
-          <td><span class="tag ${pctTipReav > 10 ? 'tag-reav' : 'tag-ok'}">${pctTipReav.toFixed(2)}%</span></td>
-          <td>${n.diasMax > 0 ? n.diasMax + ' dias' : '-'}</td>
+          <td><span style="${styleTipPct}">${pctTipReav.toFixed(2)}%</span></td>
+          <td>-</td>
         `;
         tbody.appendChild(trTip);
       });
