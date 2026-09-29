@@ -671,15 +671,33 @@ function updateStatusUnidadeBtnText() {
   }
 }
 
-function getTricolorStyle(pct) {
-  if (isNaN(pct)) return '';
+function getTricolorStyle(pct, allPcts) {
+  if (isNaN(pct) || allPcts.length === 0) return '';
+  
+  // Se for 100% ou se todos os valores da lista forem 100%, força vermelho (pior cenário)
+  if (pct === 100 || allPcts.every(v => v === 100)) {
+    return 'background-color: #FCE8E6; color: #C5221F; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
+  }
+  // Se todos forem 0%, força verde
+  if (allPcts.every(v => v === 0)) {
+    return 'background-color: #E6F4EA; color: #137333; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
+  }
+
+  const sorted = [...allPcts].sort((a, b) => a - b);
+  const getPercentile = (val) => {
+    const idx = sorted.findIndex(v => v >= val);
+    if (idx === -1) return 100;
+    return (idx / (sorted.length - 1)) * 100;
+  };
+  const p = getPercentile(pct);
+  
   let bg = '', fg = '';
-  if (pct === 0) {
-    bg = '#E6F4EA'; fg = '#137333'; // Verde (0% - Ótimo)
-  } else if (pct <= 20) {
-    bg = '#FEF7E0'; fg = '#B06000'; // Amarelo/Alerta (Até 20%)
+  if (p <= 30) {
+    bg = '#E6F4EA'; fg = '#137333';
+  } else if (p <= 70) {
+    bg = '#FEF7E0'; fg = '#B06000';
   } else {
-    bg = '#FCE8E6'; fg = '#C5221F'; // Vermelho (> 20% até 100%)
+    bg = '#FCE8E6'; fg = '#C5221F';
   }
   return `background-color: ${bg}; color: ${fg}; padding: 3px 8px; border-radius: 4px; font-weight: 600;`;
 }
@@ -732,6 +750,28 @@ function renderTreeTable() {
     node.uhReav += d.uhReav;
   });
 
+  let regPcts = [];
+  let empPcts = [];
+  let tipPcts = [];
+
+  Object.keys(tree).forEach(reg => {
+    let rDisp = 0, rReav = 0;
+    Object.keys(tree[reg]).forEach(emp => {
+      let eDisp = 0, eReav = 0;
+      Object.keys(tree[reg][emp].tips).forEach(tip => {
+        const n = tree[reg][emp].tips[tip];
+        eDisp += n.disp;
+        eReav += n.uhReav;
+        const tPct = n.disp > 0 ? (n.uhReav / n.disp) * 100 : 0;
+        tipPcts.push(tPct);
+      });
+      rDisp += eDisp;
+      rReav += eReav;
+      if (eDisp > 0) empPcts.push((eReav / eDisp) * 100);
+    });
+    if (rDisp > 0) regPcts.push((rReav / rDisp) * 100);
+  });
+
   const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
 
   Object.keys(tree).sort().forEach(reg => {
@@ -775,7 +815,7 @@ function renderTreeTable() {
     const autoExpand = empFilterVal !== '' ? 'expanded' : '';
     if (autoExpand) trReg.classList.add('expanded');
 
-    const styleRegPct = getTricolorStyle(pctRegReav);
+    const styleRegPct = getTricolorStyle(pctRegReav, regPcts);
 
     trReg.innerHTML = `
       <td class="left"><span class="tree-toggle" id="toggle_${regId}">${autoExpand ? '-' : '+'}</span> <b>${reg}</b></td>
@@ -818,7 +858,7 @@ function renderTreeTable() {
       const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
       
-      const styleEmpPct = getTricolorStyle(pctEmpReav);
+      const styleEmpPct = getTricolorStyle(pctEmpReav, empPcts);
       const styleEmpDays = getDaysColorStyle(empDias);
 
       trEmp.innerHTML = `
@@ -845,7 +885,7 @@ function renderTreeTable() {
         trTip.className = `row-tip ${empId}`;
         if (autoExpand) trTip.style.display = 'table-row';
 
-        const styleTipPct = getTricolorStyle(pctTipReav);
+        const styleTipPct = getTricolorStyle(pctTipReav, tipPcts);
 
         trTip.innerHTML = `
           <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
