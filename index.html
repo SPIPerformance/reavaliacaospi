@@ -242,9 +242,11 @@ const GITHUB_USER = "SPIPerformance";
 const GITHUB_REPO = "reavaliacaospi";
 const GITHUB_BRANCH = "main";
 
-const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx`;
-const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx`;
-const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx`;
+// Cache buster adicionado para garantir que atualizações no GitHub sejam puxadas imediatamente
+const CACHE_BUSTER = `?t=${new Date().getTime()}`;
+const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx${CACHE_BUSTER}`;
+const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx${CACHE_BUSTER}`;
+const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx${CACHE_BUSTER}`;
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
