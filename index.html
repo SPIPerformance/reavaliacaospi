@@ -134,7 +134,7 @@ tbody tr:hover{background:#EAF0F6;}
   background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
   padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:150px;
 }
-.filters input[type=text]{min-width:200px;}
+.filters input[type=text]{min-width:220px;}
 .chk{display:flex;align-items:center;gap:6px;font-size:12.3px;color:var(--ink-dim);}
 .chk input{accent-color:var(--accent-dark);}
 
@@ -151,7 +151,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Validação de métricas e datas de avaliação.</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Com filtro de empreendimento integrado.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -180,6 +180,13 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
 
     <div class="panel">
       <h2>Por regional (Visão em árvore)</h2>
+      <div class="filters">
+        <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos na árvore...">
+        <select id="treeFilterRegional">
+          <option value="">Todas as regionais</option>
+        </select>
+        <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
+      </div>
       <div class="table-scroll">
         <table id="treeTable">
           <thead><tr>
@@ -240,7 +247,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Regras aplicadas: Fórmulas de VI Final, Tipologia Real e Dias Última VA integradas. Descarte de empreendimentos sem regional.
+    Painel integrado com filtros na árvore e listagem detalhada por unidade.
   </footer>
 
 </div>
@@ -261,6 +268,13 @@ const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_RE
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnRefresh').addEventListener('click', loadDataFromGitHub);
+  document.getElementById('treeFilterEmpreendimento').addEventListener('input', renderTreeTable);
+  document.getElementById('treeFilterRegional').addEventListener('change', renderTreeTable);
+  document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
+    document.getElementById('treeFilterEmpreendimento').value = '';
+    document.getElementById('treeFilterRegional').value = '';
+    renderTreeTable();
+  });
   loadDataFromGitHub();
 });
 
@@ -298,7 +312,7 @@ async function loadDataFromGitHub() {
     const wbControle = XLSX.read(bufControle, {type: 'array'});
     const wbDepara = XLSX.read(bufDepara, {type: 'array'});
 
-    // 1. Processar Depara ('auxiliar') -> Coluna H (Empr) -> Coluna E (Regional)
+    // 1. Processar Depara ('auxiliar')
     const wsDepara = wbDepara.Sheets['auxiliar'] || wbDepara.Sheets[wbDepara.SheetNames[0]];
     const deparaRows = XLSX.utils.sheet_to_json(wsDepara, {header: 1});
     deparaMap = {};
@@ -313,7 +327,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    // 2. Processar Controle BH -> Coluna Empr (índice 4), Última avaliação (índice 11)
+    // 2. Processar Controle BH
     const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
@@ -367,10 +381,8 @@ async function loadDataFromGitHub() {
         const empUpper = empreendimento.toUpperCase();
         const regional = deparaMap[empUpper] || '';
         
-        // Descartar se não tiver regional mapeada
         if (!regional) continue;
 
-        // Fórmulas
         const viFinal = valorImovel - valorBomPagador - bpPagadoria;
 
         let tipAjustada = tipologiaRaw;
@@ -389,7 +401,6 @@ async function loadDataFromGitHub() {
         const estDisp = (statusUnidade === 'Lançado' || statusUnidade === 'Exclusivo Plataforma') ? 1 : 0;
         const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
 
-        // Dias Última VA
         let diasUltVA = null;
         if (controleMap[empUpper]) {
           const diffTime = new Date() - controleMap[empUpper];
@@ -460,11 +471,20 @@ function renderKPIs() {
 }
 
 function populateFilters() {
-  const regSet = new Set(globalData.map(d => d.regional));
+  const regSet = Array.from(new Set(globalData.map(d => d.regional))).sort();
+  
+  // Detalhe filters
   const selReg = document.getElementById('filterRegional');
   selReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => {
     selReg.innerHTML += `<option value="${r}">${r}</option>`;
+  });
+
+  // Tree filters
+  const treeSelReg = document.getElementById('treeFilterRegional');
+  treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
+  regSet.forEach(r => {
+    treeSelReg.innerHTML += `<option value="${r}">${r}</option>`;
   });
 }
 
@@ -472,8 +492,14 @@ function renderTreeTable() {
   const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
 
+  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
+  const regFilterVal = document.getElementById('treeFilterRegional').value;
+
   let tree = {};
   globalData.forEach(d => {
+    if (regFilterVal && d.regional !== regFilterVal) return;
+    if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return;
+
     if (!tree[d.regional]) tree[d.regional] = {};
     if (!tree[d.regional][d.empreendimento]) tree[d.regional][d.empreendimento] = {};
     if (!tree[d.regional][d.empreendimento][d.tipReal]) {
@@ -534,8 +560,13 @@ function renderTreeTable() {
     trReg.className = 'row-regional';
     const regId = 'reg_' + reg.replace(/\s+/g, '_');
     trReg.dataset.target = regId;
+    
+    // Se houver filtro de empreendimento ativo, abre automaticamente a árvore
+    const autoExpand = empFilterVal !== '' ? 'expanded' : '';
+    if (autoExpand) trReg.classList.add('expanded');
+
     trReg.innerHTML = `
-      <td class="left"><span class="tree-toggle" id="toggle_${regId}">+</span> <b>${reg}</b></td>
+      <td class="left"><span class="tree-toggle" id="toggle_${regId}">${autoExpand ? '-' : '+'}</span> <b>${reg}</b></td>
       <td>${regDisp}</td>
       <td>${regLivre}</td>
       <td>R$ ${medRegVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
@@ -569,11 +600,13 @@ function renderTreeTable() {
       const pctEmpReav = empDisp ? (empUhReav / empDisp) * 100 : 0;
 
       const trEmp = document.createElement('tr');
-      trEmp.className = `row-emp ${regId}`;
+      trEmp.className = `row-emp ${regId} ${autoExpand}`;
+      if (autoExpand) trEmp.style.display = 'table-row';
+
       const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
       trEmp.innerHTML = `
-        <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">+</span> ${emp}</td>
+        <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">${autoExpand ? '-' : '+'}</span> ${emp}</td>
         <td>${empDisp}</td>
         <td>${empLivre}</td>
         <td>R$ ${medEmpVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
@@ -594,6 +627,8 @@ function renderTreeTable() {
 
         const trTip = document.createElement('tr');
         trTip.className = `row-tip ${empId}`;
+        if (autoExpand) trTip.style.display = 'table-row';
+
         trTip.innerHTML = `
           <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
           <td>${n.disp}</td>
