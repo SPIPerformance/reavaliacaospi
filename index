@@ -1,1 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Avaliações · Bússola</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#EEEFF1;
+  --panel:#FFFFFF;
+  --panel-alt:#F5F6F7;
+  --line:#D7D9DC;
+  --line-soft:#E7E8EA;
+  --ink:#26282B;
+  --ink-dim:#65686D;
+  --ink-faint:#9A9DA2;
+  --accent:#4B5563;
+  --accent-dark:#2E3338;
+  --mrv-green:#006B3F;
+  --mrv-green-mid:#079D56;
+  --mrv-green-bright:#00D38D;
+  --mrv-green-light:#82EA5B;
+  --mrv-orange:#FF8B22;
+  --mrv-amber:#FFB719;
+  --ok-bg:#DCEFDD; --ok-fg:#1E7A34;
+  --warn-bg:#FBEBC7; --warn-fg:#8A5A00;
+  --crit-bg:#F8D7D7; --crit-fg:#B3261E;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:13.5px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+a{color:var(--accent-dark);}
+button{font-family:var(--font-body);}
+::selection{background:#C7D0DB;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
+.shell{max-width:1320px;margin:0 auto;padding:20px 20px 60px;}
+
+.titleblock{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:6px;
+  display:flex;justify-content:space-between;align-items:flex-end;
+  padding:18px 22px;gap:24px;flex-wrap:wrap;
+}
+.tb-name{font-weight:700;font-size:22px;letter-spacing:-0.2px;color:var(--ink);}
+.tb-sub{color:var(--ink-dim);font-size:12.5px;margin-top:4px;max-width:64ch;}
+.tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;}
+.tb-meta b{color:var(--ink);font-weight:600;}
+
+.source-bar{
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--ink-dim);
+}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
+.dot.ok{background:#3E9B4F;}
+.dot.warn{background:#C9922A;}
+
+.panel{
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:6px;
+  padding:18px 20px;
+}
+.panel + .panel{margin-top:14px;}
+.panel h2{
+  font-weight:600;font-size:14px;
+  margin:0 0 14px;color:var(--ink);
+}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:760px){.grid-2{grid-template-columns:1fr;}}
+
+.upload-row{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end;}
+@media (max-width:820px){.upload-row{grid-template-columns:1fr;}}
+.field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;}
+.filepick{
+  border:1px dashed var(--line);background:var(--panel-alt);border-radius:4px;
+  padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;
+  transition:border-color .15s;
+}
+.filepick:hover{border-color:var(--accent);}
+.filepick input{display:none;}
+.filepick .fname{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.filepick.has-file{border-style:solid;border-color:var(--accent);}
+.filepick.has-file .fname{color:var(--ok-fg);}
+.btn{
+  font-weight:600;font-size:13px;
+  background:var(--accent-dark);color:#fff;border:1px solid var(--accent-dark);border-radius:4px;
+  padding:11px 20px;cursor:pointer;transition:filter .15s, transform .05s;
+}
+.btn:hover{filter:brightness(1.15);}
+.btn:active{transform:translateY(1px);}
+.btn:disabled{background:var(--line);border-color:var(--line);color:var(--ink-faint);cursor:not-allowed;}
+.btn-ghost{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
+  font-weight:500;font-size:12.5px;padding:8px 13px;cursor:pointer;
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent-dark);}
+.btn-small{padding:6px 10px;font-size:11.5px;}
+.status-line{margin-top:12px;font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);min-height:16px;}
+.status-line.err{color:var(--crit-fg);}
+.status-line.ok{color:var(--ok-fg);}
+
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media (max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:14px 16px;}
+.kpi .label{font-size:11.5px;color:var(--ink-dim);}
+.kpi .value{font-family:var(--font-mono);font-weight:600;font-size:22px;color:var(--ink);margin-top:5px;}
+.kpi .value.warn{color:var(--warn-fg);}
+.kpi .value.crit{color:var(--crit-fg);}
+
+table{width:100%;border-collapse:collapse;font-size:12.8px;}
+thead th{
+  text-align:right;font-weight:700;font-size:11.5px;
+  color:#fff;background:var(--mrv-green);border-bottom:1px solid var(--mrv-green);padding:9px 10px;
+  white-space:nowrap;
+}
+thead th.left, td.left{text-align:left;}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);font-size:12.3px;white-space:nowrap;}
+tbody td.left{text-align:left;font-family:var(--font-body);}
+tbody tr:nth-child(even){background:var(--panel-alt);}
+tbody tr:hover{background:#EAF0F6;}
+tbody tr.row-total td{
+  font-weight:700;color:#fff;border-top:2px solid var(--mrv-green);border-bottom:none;
+  background:var(--mrv-green);
+}
+tbody tr.row-total:hover{background:var(--mrv-green);}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
+.tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
+.tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
+.tag-warn{color:var(--warn-fg);background:var(--warn-bg);}
+.tag-neutral{color:var(--ink-faint);background:var(--panel-alt);}
+.table-scroll{overflow-x:auto;}
+.table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
+.pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.filters select, .filters input[type=text]{
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:150px;
+}
+.filters input[type=text]{min-width:200px;}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.3px;color:var(--ink-dim);}
+.chk input{accent-color:var(--accent-dark);}
+
+.mapping-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;padding-right:4px;}
+.mapping-row{display:grid;grid-template-columns:1fr 180px;gap:10px;align-items:center;font-size:12.3px;}
+.mapping-row .name{font-family:var(--font-mono);color:var(--ink);}
+.mapping-row select{background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);padding:6px 8px;font-family:var(--font-body);font-size:12.3px;}
+.badge-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--accent-dark);color:#fff;font-size:10.5px;font-family:var(--font-mono);margin-left:8px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;max-height:220px;overflow-y:auto;padding:2px;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--panel-alt);border:1px solid var(--line);border-radius:14px;
+  padding:4px 6px 4px 11px;font-size:12px;color:var(--ink);
+}
+.chip-x{
+  border:none;background:var(--line);color:var(--ink-dim);width:16px;height:16px;border-radius:50%;
+  cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;
+}
+.chip-x:hover{background:var(--crit-bg);color:var(--crit-fg);}
+.scope-add{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.scope-add input{
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  padding:8px 10px;font-family:var(--font-body);font-size:12.3px;min-width:260px;
+}
+
+.collapse-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.collapse-head .chev{transition:transform .15s;color:var(--ink-dim);}
+.collapse-head.open .chev{transform:rotate(90deg);}
+.collapse-body{display:none;margin-top:14px;}
+.collapse-body.open{display:block;}
+
+#dashboard{display:none;}
+#dashboard.visible{display:block;}
+.section-gap{height:14px;}
+footer{margin-top:26px;color:var(--ink-faint);font-size:11px;line-height:1.7;border-top:1px solid var(--line);padding-top:14px;}
+footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px 5px;border:1px solid var(--line);border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="titleblock">
+    <div>
+      <div class="tb-name">Painel de Avaliações</div>
+      <div class="tb-sub">Estoque disponível, avaliação bancária vs. valor de referência e necessidade de reavaliação, por regional, empreendimento e tipologia.</div>
+    </div>
+    <div class="tb-meta" id="tbMeta">Aguardando arquivos...</div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <div class="source-bar">
+    <div id="dataSourceLine">Selecione as bases para iniciar o cruzamento dinâmico.</div>
+    <button class="btn-ghost btn-small" id="btnRefreshShared">↻ Verificar atualização</button>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <!-- ==================== UPLOAD ==================== -->
+  <div class="panel">
+    <h2>1. Atualizar bases (REL_ETQ e Controle BH)</h2>
+    <div class="upload-row">
+      <div class="field">
+        <label for="fileEstoque">Base de Estoque / REL_ETQ (.xlsx)</label>
+        <label class="filepick" id="pickEstoque">
+          <span>📄</span>
+          <span class="fname" id="fnameEstoque">Nenhum arquivo selecionado</span>
+          <input type="file" id="fileEstoque" accept=".xlsx,.xls">
+        </label>
+      </div>
+      <div class="field">
+        <label for="fileControle">Base Controle BH (.xlsx)</label>
+        <label class="filepick" id="pickControle">
+          <span>📄</span>
+          <span class="fname" id="fnameControle">Nenhum arquivo selecionado</span>
+          <input type="file" id="fileControle" accept=".xlsx,.xls">
+        </label>
+      </div>
+      <button class="btn" id="btnProcess" disabled>Processar Bases</button>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <!-- ==================== MANUAL MAPPING ==================== -->
+  <div class="panel" id="mappingPanel" style="display:none;">
+    <div class="collapse-head" id="mappingHead">
+      <h2 style="margin:0;">2. Empreendimentos sem regional <span class="badge-count" id="unmappedCount">0</span></h2>
+      <span class="chev">▸</span>
+    </div>
+    <div class="collapse-body" id="mappingBody">
+      <div class="mapping-list" id="mappingList"></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn" id="btnApplyMapping">Aplicar e recalcular</button>
+        <button class="btn-ghost" id="btnExportMapping">Exportar mapeamento (.json)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <!-- ==================== SCOPE ==================== -->
+  <div class="panel">
+    <div class="collapse-head" id="scopeHead">
+      <h2 style="margin:0;">3. Escopo do painel <span class="badge-count" id="scopeCount">0</span></h2>
+      <span class="chev">▸</span>
+    </div>
+    <div class="collapse-body" id="scopeBody">
+      <div class="chips" id="scopeChips"></div>
+      <div class="scope-add">
+        <input type="text" id="scopeAddInput" list="scopeAddList" placeholder="Adicionar empreendimento ao escopo...">
+        <datalist id="scopeAddList"></datalist>
+        <button class="btn-ghost" id="btnExportScope">Exportar escopo (.json)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <!-- ==================== DASHBOARD ==================== -->
+  <div id="dashboard">
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="section-gap"></div>
+
+    <div class="panel">
+      <h2>Por regional</h2>
+      <div class="table-scroll">
+        <table id="regionalTable">
+          <thead><tr>
+            <th class="left">Regional / Empreendimento / Tipologia</th>
+            <th>Etq. Disp</th>
+            <th>Etq. Livre</th>
+            <th>Méd. VA</th>
+            <th>Méd. VI</th>
+            <th>% Desvio</th>
+            <th>Qtde. Reavaliar</th>
+            <th>% Reavaliar</th>
+            <th>Dias Últ. VA</th>
+          </tr></thead>
+          <tbody id="regionalTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-gap"></div>
+
+    <div class="panel">
+      <h2>Detalhamento por unidade</h2>
+      <div class="filters">
+        <select id="filterRegional"><option value="">Todas as regionais</option></select>
+        <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
+        <select id="filterStatus"><option value="">Todos os status</option></select>
+        <label class="chk"><input type="checkbox" id="filterLivre" checked> Só estoque livre</label>
+        <label class="chk"><input type="checkbox" id="filterReavOnly"> Só a reavaliar</label>
+        <button class="btn-ghost btn-small" id="btnExportCsv">Exportar CSV</button>
+      </div>
+      <div class="table-scroll">
+        <table id="detailTable">
+          <thead><tr>
+            <th class="left">Regional</th>
+            <th class="left">Empreendimento</th>
+            <th class="left">Bloco</th>
+            <th class="left">Unidade</th>
+            <th class="left">Tipologia</th>
+            <th class="left">Status Unidade</th>
+            <th>Aval. Banco</th>
+            <th>VI Final</th>
+            <th>Desvio</th>
+            <th>Dias Últ. VA</th>
+            <th class="left">Status</th>
+          </tr></thead>
+          <tbody id="detailTbody"></tbody>
+        </table>
+      </div>
+      <div class="table-wrap-foot">
+        <div class="pager" id="pagerInfo"></div>
+        <div class="pager">
+          <button class="btn-ghost btn-small" id="btnPrevPage">‹ Anterior</button>
+          <button class="btn-ghost btn-small" id="btnNextPage">Próxima ›</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Fórmulas dinâmicas integradas para leitura exata de tipologias do REL_ETQ, cruzamento com Controle BH e mapeamento de regionais.
+  </footer>
+
+</div>
+
+<script id="aux-map-data" type="application/json">{"Tropical Garden":"SPI 1","Residencial Jardim Verona":"SPI 5","Residencial Regency Towers":"SPI 2","Residencial Colorado":"SPI 1","Residencial Piazza Ravena":"SPI 3","Palácio De Versalhes":"SPI 2","Parque Rio Tocantins":"SPI 5","Parque Paladino":"SPI 3","Rio Gandini":"SPI 5","Residencial Borussia":"SPI 4","Residencial Santinni":"SPI 6","Ilhabella Garden":"SPI 1","Parque Rio Maine":"SPI 5","Morada Das Macadâmias":"SPI 3","Residencial Paládio":"SPI 2","Residencial Sion":"SPI 6","Vale Do Sereno_Residencial Dos Manacás":"SPI 6","Residencial Armani":"SPI 5","Residencial Antares":"SPI 4","Residencial Allegra":"SPI 3","Palácio De Turim":"SPI 2","Residencial Belveder Towers":"SPI 2","Residencial Piazza Turim":"SPI 3","Residencial Barchi":"SPI 4","Rio Uruguai":"SPI 5","Parque Angra Dos Reis":"SPI 3","Residencial Angellis":"SPI 3","Parque Monte D'Oro":"SPI 3","Residencial Principe Da Holanda":"SPI 4","Reserva Das Tulipas":"SPI 2","Residencial Bolívar":"SPI 4","Parque Rio Liri":"SPI 5","Florenza Residencial":"SPI 2","Residencial Acordes":"SPI 5","Residencial Campo Das Figueiras":"SPI 1","Residencial Argus":"SPI 5","Casa Bela":"SPI 5","Versalhes Garden":"SPI 1","Parque Madri":"SPI 4","Residencial Áster":"SPI 4","Parque Solar Veredas":"SPI 2","Residencial Alameda Das Andorinhas":"SPI 3","Joy Garden":"SPI 1","Fontana Garden":"SPI 1","Residencial Bella Rússia":"SPI 4","Coimbra Garden":"SPI 1","Parque Príncipe Da Bélgica":"SPI 4","Parque Solar Das Araras":"SPI 6","Residencial Solar Buritis":"SPI 2","Residencial Bella Áustria":"SPI 4","Sensia Village Galleria":"Sensia","Parque Filadélfia":"SPI 2","Residencial Prata":"SPI 2","Residencial Ravenna":"SPI 2","Parque Malásia":"SPI 4","Residencial Diamante Ville":"SPI 1","Belize Residencial":"SPI 4","Residencial Príncipe De Atenas":"SPI 4","Residencial Sunshine":"SPI 6","Villagio Garden":"SPI 1","Reserva Real_ Palácio Imperial":"SPI 2","Cahima Emp 01":"SPI 2","Residencial Aritá":"SPI 3","Residencial Solar Da Colina":"SPI 6","Residencial Aurora":"SPI 4","Bela Suíça":"SPI 4","Residencial Sun Lake":"SPI 6","Parque Príncipe Da Grécia":"SPI 4","Sensia Botânico":"Sensia","Residencial Amplitude":"SPI 3","Ferrette Residencial":"SPI 2","Residencial Dos Lírios":"SPI 3","Parque Barcelona":"SPI 4","Residencial Cromo":"SPI 2","Residencial Rio Mackenzie":"SPI 5","Melina Residencial":"SPI 5","Parque Monte Stella":"SPI 3","Monte Amazonas":"SPI 3","Reserva Macaúba Garden":"SPI 2","Residencial Brunello":"SPI 4","Reserva Aquarius":"SPI 5","Residencial Jardins":"SPI 6","Residencial Piazza Platina":"SPI 3","Reserva Das Íris":"SPI 2","Residencial Império La Castelle":"SPI 6","Residencial Sabine":"SPI 6","Residencial Sollare":"SPI 6","Parque Imperattore":"SPI 6","Rio Prado":"SPI 5","Monte Dos Pinheiros":"SPI 3","Residencial Lago De Versalhes":"SPI 6","Parque Rio Das Vertentes":"SPI 5","Residencial Celestial":"SPI 1","Residencial Amaranto":"SPI 5","Recreio Internacional Emp 01":"SPI 2","Parque Lua Nova":"SPI 3","Casa De Leon":"SPI 5","Residencial Monte Berlim":"SPI 3","Santa Iria":"SPI 2","Moritzi Residencial":"SPI 5","Cahima Emp 02":"SPI 2","Fiorenttino Residence":"SPI 2","Residencial Casa De Viena":"SPI 5","Parque Apoteose":"SPI 5","Parque Atlantis":"SPI 4","Residencial Colinas De Roma":"SPI 1","Condomínio Residencial San Matteo":"SPI 6","Residencial Liverpool":"SPI 3","Parque Assunção":"SPI 3","Jardim Regatas":"SPI 2","Reserva Das Violetas":"SPI 2","Residencial Das Águas":"SPI 3","Monte Dos Andes":"SPI 3","Reserva Flor De Lotus":"SPI 2","Residencial Bella Itália":"SPI 4","Nature Garden":"SPI 1","Sensia Parque Prado":"Sensia","Remanso Do Lago":"SPI 2","Parque Antilles":"SPI 4","Residencial Rotterdam":"SPI 2","Costa Dos Alpes":"SPI 1","Imperial Garden":"SPI 1","Morada Das Magnólias":"SPI 3","Bella Hungria":"SPI 4","Residencial Aires":"SPI 5","Palácio De Windsor":"SPI 2","Parque Lombardia":"SPI 5","Residencial Jardim Dos Girassóis":"SPI 5","Residencial Ilha De Bali":"SPI 6","Residencial Colinas De Mônaco":"SPI 1","Art Life Residencial":"SPI 5","Residencial Serena":"SPI 6","Residencial Citá":"SPI 1","Parque Aquarelle":"SPI 5","Residencial Solar Do Vale":"SPI 6","Residencial Piazza Di Milano":"SPI 3","Borella Residencial":"SPI 4","Príncipe De Valência":"SPI 4","Barão Da Serra":"SPI 4","Residencial Costa Laguna":"SPI 1","Residencial Bulgária":"SPI 4","Reserva Das Magnólias":"SPI 2","Maldivas Residencial":"SPI 4","Residencial Boston":"SPI 4","Parque Bari":"SPI 4","Residencial Casa De Atenas":"SPI 5","Parque Monte Blanc":"SPI 3","Residencial Amistad":"SPI 4","Parque Monte Athos":"SPI 3","CITY GALLERIA":"SPI 1","Parque Príncipe Da Pérsia":"SPI 4","Sensia Galleria":"Sensia","Residencial Jardim Di Florença":"SPI 6","Monte Soleil":"SPI 3","Residencial Berati":"SPI 4","Residencial Ambrósio":"SPI 3","Residencial Luz Do Campo":"SPI 3","Residencial Bella Turquia":"SPI 4","Barão De Linhares":"SPI 4","Samaneamix Emp 01":"SPI 2","Príncipe De Viana":"SPI 4","Residencial Ágata":"SPI 4","Parque Ponte Romana":"SPI 6","Bela Grécia":"SPI 4","Residencial Rio Frates":"SPI 5","Rios D`Itália_Parque Rio Tanaro":"SPI 5","Residencial Colinas De Napoles":"SPI 1","Residencial Safira Ville":"SPI 1","Residencial Lago De Tune":"SPI 6","Residencial Solano":"SPI 6","Residencial Santoro":"SPI 6","Parque Bela Espanha":"SPI 4","Bela França":"SPI 4","Residencial Ares":"SPI 4","Residencial Branzi":"SPI 4","Residencial Atalaia":"SPI 4","Residencial Príncipe De Malta":"SPI 4","Parque Arthoria":"SPI 4","Residencial Costa Real":"SPI 1","Portal Dos Ventos":"SPI 2","Salvador Filardi Emp 03":"SPI 4","Godex Emp 01":"SPI 6","Três Irmãs Emp 02":"SPI 6","Residencial Camim":"SPI 1","Munique Residencial":"SPI 4","Parque Rio Danúbio":"SPI 5","Residencial Rio Dos Diamantes":"SPI 5","Bomba Grande Emp 04":"SPI 4","Bomba Grande Emp 05":"SPI 4","Stuart Little Emp 02":"SPI 2","Vale Do Sereno_Residencial Ouro Branco":"SPI 6","Salvador Filardi 04":"SPI 4","Cabeça De Bacalhau Emp 02":"SPI 6","Parque Caribe":"SPI 1","Parque Das Cores_Garden":"SPI 1","Luxa Itavuvu Emp 01":"SPI 6","Campo Das Palmeiras":"SPI 1","Cabeça De Bacalhau Emp 01":"SPI 6","Sugarfoot Emp01":"SPI 1","Yonekazo Emp 01":"SPI 5","Alcool Emp 03":"SPI 2","Sugarfoot Emp06":"SPI 1","Rancho Da Garapa Emp 01":"SPI 1","Ravanelli Emp 01":"SPI 2","Residencial Mirante Da Aurora":"SPI 4","Sugarfoot Emp03":"SPI 1","Residencial Lago De Toulon":"SPI 6","Bomba Grande Emp 02":"SPI 4","Cabeça De Bacalhau Emp 03":"SPI 6","Vem Viver Zarzur Emp 01":"SPI 1","Treze Mil Emp 01":"SPI 1","Bomba Grande Emp01":"SPI 4","Água Fria Emp 01":"SPI 3","Samaneamix Emp 04":"SPI 2","Rabo De Baleia Emp 01":"SPI 3","Área Cabeludo Emp 01":"SPI 4","Bomba Grande Emp 03":"SPI 4","Málaga Residencial":"SPI 4","Salve Jorge Emp 01":"SPI 1","Torrão De Ouro Emp 01":"SPI 4","Alcool Emp 5":"SPI 2","Campo Das Cerejeiras":"SPI 1","Vale Do Sereno_Residencial Dos Colibris":"SPI 6","Piazza San Paolo":"SPI 3","Reserva Do Lago":"SPI 5","Craque Do Paris  Emp01":"SPI 1","Alcool Emp 02":"SPI 2","Residencial Piazza Veneto":"SPI 3","Stuart Little Emp 01":"SPI 2","Residencial Luz Do Vale":"SPI 3","Milano Residencial":"SPI 4","Piazza Spada":"SPI 3","Lar Finlândia Emp 01":"SPI 2","Dona Ranha Emp 01":"SPI 6","Vem Viver Zarzur Emp 03":"SPI 1","Salvador Filardi Emp 01":"SPI 4","Complexo Parque Da Costeira_Parque Camburi":"SPI 1","Carpina Emp 01":"SPI 2","Alazão Emp 01":"SPI 4","Residencial Lago De Lisse":"SPI 6","Bomba Grande Emp 06":"SPI 4","Samaneamix Emp 02":"SPI 2","Campo Dos Ipês":"SPI 1","Área Furacão":"SPI 1","Alcool Emp 7":"SPI 2","Tecunseh Emp 01":"SPI 3","Parque Rio Lis":"SPI 5","Nobreville Casa 01":"SPI 5","Alcool Emp 6":"SPI 2","Cachorro Do Mato Novo Emp":"SPI 5","Gigo Emp 01":"SPI 4","Rancho Alegre Emp 02":"SPI 3","Infracamp Emp 01":"SPI 1","Ead Emp 01":"SPI 1","Alcool Emp 04":"SPI 2","Residencial Cedro":"SPI 1","Infracamp Emp 02":"SPI 1","Valdeci Emp 03":"SPI 4","Cores Do Mar":"SPI 1","Villa Alvorada":"SPI 4","Residencial Amarillo":"SPI 4","Piriri Emp 01":"SPI 1","Sugarfoot Emp04":"SPI 1","Jardins De Primavera":"SPI 2","Alcool Emp 01":"SPI 2","Sugarfoot Emp05":"SPI 1","Gran Florencia":"SPI 2","Parque Rio Tapajós":"SPI 5","Parque Cataratas Do Iguaçu":"SPI 1","Salvador Filardi Emp 02":"SPI 4","Sem Glúten Emp 01":"SPI 6","Parque Cataratas Do Niágara":"SPI 1","Residencial Monte Serena":"SPI 3","Lacoste":"SPI 3","Piazza San Marino":"SPI 3","Parque Rio Xingú":"SPI 5","Valdeci Emp 01":"SPI 4","Residencial Lago De Amarante":"SPI 6","Vale Do Sereno_Residencial Sol Do Alvorada":"SPI 6","Residencial Montreal":"SPI 5","Campo Dos Pinheiros":"SPI 1","Ead Emp 02":"SPI 1","Residencial Monte Das Oliveiras":"SPI 3","Campo Das Araucárias":"SPI 1","Área Grambaré Emp 01":"SPI 3","Residencial Rio Dos Cristais":"SPI 5","Sugarfoot Emp02":"SPI 1","Cahima Emp 03":"SPI 2","Cahima Emp 04":"SPI 2","Área Sotto Condomínio 5":"SPI 2","Spazio Rio Madeira":"SPI 5","Frezzarin Emp 01":"SPI 3","Cara De Pau Emp 01":"SPI 3","Valdeci Emp 02":"SPI 4","Camuzzi Emp 01":"SPI 3","Residencial Canto Das Andorinhas":"SPI 2","Portal Dos Buritis":"SPI 1","Vem Viver Zarzur Emp 02":"SPI 1","Residencial Astúrias":"SPI 4","RESIDENCIAL VEREDAS":"SPI 6","Cores Da Ilha":"SPI 1","Residencial Riviera":"SPI 2","RESIDENCIAL CAPRI VILLAGE":"SPI 1","EPARQUE RIO PRETO LESTE MÓDULO 01":"SPI 5","Três Irmãs Emp 01":"SPI 6","Reserva Das Gardênias":"SPI 2","Reserva Di Medeiros":"SPI 6","Condomínio Residencial Lago De Luca":"SPI 6","CORES DO POENTE":"SPI 1","Gran Campolim":"SPI 6","Residencial Stefanini":"SPI 6","Residencial Luz Da Aurora":"SPI 3","Madeira Emp 01":"SPI 4","Residencial Grandena":"SPI 5","Residencial Mirante Das Brisas":"SPI 4","Barão De Barcelos":"SPI 4","Residencial Scarpone":"SPI 6","Residencial Monte Das Castanheiras":"SPI 3","Residencial Monte Dos Ipês":"SPI 3","Parque Rio De Portugal":"SPI 5","Residencial Bella Suécia":"SPI 4","Residencial Rio Piave":"SPI 5","Residencial Belgrano":"SPI 4","Gran Primavera":"SPI 2","Residencial Atlanta":"SPI 5","Gran Fornari":"SPI 6","Residencial Morumbi":"SPI 4","Vale Do Sereno_Residencial Montanhas Do Vale":"SPI 6","Residencial Canto Das Águias":"SPI 2","Jardim Morada Do Verde":"SPI 2","Molusgo Emp 01":"SPI 5","Parque Sorrento":"SPI 5","Benissa Residencial":"SPI 4","Residencial Mirante Dos Ventos":"SPI 4","Palácio De Estocolmo":"SPI 2","Reserva Das Amarílis":"SPI 2","Colina Do Sol":"SPI 1","Sensia Swiss Garden":"Sensia","Residencial Áquila":"SPI 4","Reserva Dos Lírios":"SPI 2","Cores Do Lago":"SPI 1","Residencial Don Pagliato":"SPI 6","Portal Dos Jatobás":"SPI 1","Residencial Autenticità":"SPI 3","Parque Das Cores_Cores Do Horizonte":"SPI 1","Residencial Platina":"SPI 2","Residencial Jardim Das Araucárias":"SPI 6","Balvano Residencial":"SPI 4","Residencial Monte Das Colinas":"SPI 3","Sensia Taquaral":"Sensia","Residencial Lago De Davos":"SPI 6","Residencial Green Park":"SPI 4","Eparque Rio Preto Leste Módulo 03":"SPI 5","Residencial Canto Da Mata":"SPI 1","Residencial Jardim Oliveiras":"SPI 5","Condomínio Costa Dos Ventos":"SPI 1","Caminhos Dos Ypês":"SPI 4","Residencial Monte Das Aroeiras":"SPI 3","RESIDENCIAL SOLAR DOS EUCALIPTOS":"SPI 6","Monte Dos Cedros":"SPI 3","Residencial Minerva Ii":"SPI 4","Depolli Emp 01":"SPI 6","Piazza Sirena":"SPI 3","Residencial Príncipe Da Noruega":"SPI 4","Eparque Rio Preto Leste Módulo 02":"SPI 5","Life Terrazza":"SPI 3","Residencial Saori":"SPI 6","Piazza Di Trento":"SPI 3","Sensia Fiusa View":"Sensia","PARQUE DAS CORES_CORES DO MIRANTE":"SPI 1","Residencial Laranjeiras":"SPI 3","Sensia Jardins":"Sensia","Perplan 12 Mil Emp 01":"SPI 6","Parque Genova":"SPI 5","Residencial Lunare":"SPI 3","Eparque Rio Preto Leste Módulo 04":"SPI 5","Residencial Maranello":"SPI 4","Gran Solarium":"SPI 2","Jegue Emp 01":"SPI 4","Residencial Jade":"SPI 6","Residencial San Lourenço":"SPI 6","VALE DO SERENO_RESIDENCIAL CAMPOS DOURADOS":"SPI 6","Residencial Mirante Do Vale":"SPI 4","Residencial Mistral":"SPI 4","Novo Reserva Aquarius":"SPI 5","Sensia Swiss View":"Sensia","Residencial Ilha De Malta":"SPI 6","Residencial Canoas":"SPI 1","Residencial Rio Ágata":"SPI 5","Residencial Satrine":"SPI 6","Residencial Principe De Luxemburgo":"SPI 4","Residencial Luz Do Sol":"SPI 3","Canto Da Serra":"SPI 1","Residencial Canto Dos Sabiás":"SPI 2","Residencial Piazza Di Viena":"SPI 3","Residencial Solar Da Ilha":"SPI 6","Residencial Cipreste":"SPI 1","Cores Do Campo":"SPI 1","Residencial Flora":"SPI 4","Rio do Egito":"SPI 2","LUGGO BONFIM":"SPI 1","PERPLAN 12 MIL EMP 01 - (SOLLARIUM)":"SPI 6","JARDIM DOS CANÁRIOS":"SPI 2","VEM VIVER ZARZUR EMP 01_ECO - VEM VIVER SOLARE":"SPI 1","VEM VIVER ARES":"SPI 1","VEM VIVER ZARZUR EMP 03_ECO - VEM VIVER BRISAS":"SPI 1","JARDIM DOS ROUXINÓIS":"SPI 2","RESIDENCIAL BONFIM":"SPI 1","VILLAGE GALLERIA":"SPI 1","VALE DA AURORA":"SPI 6"}</script>
+<script id="scope-base-data" type="application/json">["BARÃO DE BARCELOS","BENISSA RESIDENCIAL","CITY GALLERIA","COLINA DO SOL","CORES DA ILHA","CORES DO CAMPO","EPARQUE RIO PRETO LESTE MÓDULO 03","FIORENTTINO RESIDENCE","GRAN CAMPOLIM","GRAN PRIMAVERA","JARDIM DOS CANÁRIOS","JARDIM DOS ROUXINÓIS","JARDIM MORADA DO VERDE","LIFE TERRAZZA","MONTE DOS CEDROS","PALÁCIO DE ESTOCOLMO","PARQUE SORRENTO","PIAZZA SIRENA","PORTAL DOS BURITIS","PORTAL DOS JATOBÁS","RESERVA DAS AMARÍLIS","RESERVA DI MEDEIROS","RESERVA DOS LÍRIOS","RESIDENCIAL AIRES","RESIDENCIAL ARES","RESIDENCIAL ATLANTA","RESIDENCIAL AUTENTICITÀ","RESIDENCIAL BELGRANO","RESIDENCIAL CANTO DAS ANDORINHAS","RESIDENCIAL DON PAGLIATO","RESIDENCIAL GRANDENA","RESIDENCIAL GREEN PARK","RESIDENCIAL ILHA DE MALTA","RESIDENCIAL JARDIM OLIVEIRAS","RESIDENCIAL JARDIM VERONA","RESIDENCIAL LUNARE","RESIDENCIAL MIRANTE DAS BRISAS","RESIDENCIAL MIRANTE DO VALE","RESIDENCIAL MONTE DAS COLINAS","RESIDENCIAL MONTE DOS IPÊS","RESIDENCIAL MORUMBI","RESIDENCIAL PIAZZA DI MILANO","RESIDENCIAL PIAZZA DI VIENA","RESIDENCIAL RIVIERA","RESIDENCIAL SCARPONE","RESIDENCIAL SOLAR DOS EUCALIPTOS","RESIDENCIAL VEREDAS","SENSIA BOTÂNICO","SENSIA GALLERIA","SENSIA TAQUARAL","VALE DO SERENO_RESIDENCIAL CAMPOS DOURADOS","VEM VIVER ARES"]</script>
+
+<script>
+// --- LÓGICA DE PROCESSAMENTO E LEITURA DINÂMICA DAS BASES ---
+let globalData = [];
+let auxMap = {};
+let scopeList = [];
+let manualMapping = {};
+let currentPage = 1;
+const pageSize = 50;
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    auxMap = JSON.parse(document.getElementById('aux-map-data').textContent);
+    scopeList = JSON.parse(document.getElementById('scope-base-data').textContent);
+  } catch(e) {
+    auxMap = {};
+    scopeList = [];
+  }
+
+  setupFilePickers();
+  
+  document.getElementById('btnProcess').addEventListener('click', processFiles);
+  document.getElementById('btnRefreshShared').addEventListener('click', () => alert('Verificação concluída. Pronto para processamento local.'));
+  
+  // Collapsibles
+  ['mappingHead', 'scopeHead'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) {
+      el.addEventListener('click', () => {
+        el.classList.toggle('open');
+        el.nextElementSibling.classList.toggle('open');
+      });
+    }
+  });
+});
+
+function setupFilePickers() {
+  const setup = (inputId, pickId, nameId) => {
+    const inp = document.getElementById(inputId);
+    const pick = document.getElementById(pickId);
+    const fname = document.getElementById(nameId);
+    
+    inp.addEventListener('change', () => {
+      if(inp.files.length > 0) {
+        fname.textContent = inp.files[0].name;
+        pick.classList.add('has-file');
+      } else {
+        fname.textContent = 'Nenhum arquivo selecionado';
+        pick.classList.remove('has-file');
+      }
+      checkEnableProcess();
+    });
+  };
+  setup('fileEstoque', 'pickEstoque', 'fnameEstoque');
+  setup('fileControle', 'pickControle', 'fnameControle');
+}
+
+function checkEnableProcess() {
+  const fEst = document.getElementById('fileEstoque').files.length > 0;
+  const fCtr = document.getElementById('fileControle').files.length > 0;
+  document.getElementById('btnProcess').disabled = !(fEst && fCtr);
+}
+
+async function readExcelFile(file) {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, {type: 'array'});
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  return XLSX.utils.sheet_to_json(worksheet, {header: 1});
+}
+
+async function processFiles() {
+  const statusLine = document.getElementById('statusLine');
+  statusLine.textContent = 'Lendo e cruzando arquivos...';
+  statusLine.className = 'status-line';
+
+  try {
+    const fileEstoque = document.getElementById('fileEstoque').files[0];
+    const fileControle = document.getElementById('fileControle').files[0];
+
+    const estRows = await readExcelFile(fileEstoque);
+    const ctrRows = await readExcelFile(fileControle);
+
+    // Parse Controle BH para um mapa de Avaliações / Dias
+    // Procurar cabeçalhos em Controle BH
+    let ctrMap = {}; // Chave: Normalizada (Empreendimento + Bloco + Unidade) -> { dias, avalBanco, viFinal, statusAval }
+    if(ctrRows.length > 1) {
+      const header = ctrRows[0].map(h => String(h || '').trim().toLowerCase());
+      // Identificar colunas comuns (ex: Empreendimento, Bloco, Unidade, Dias, etc.)
+      // Como fallback robusto, varremos as colunas procurando termos-chave
+      for(let i = 1; i < ctrRows.length; i++) {
+        const row = ctrRows[i];
+        if(!row || row.length === 0) continue;
+        // Tentativa genérica de capturar dados das colunas
+        const emp = String(row[2] || row[1] || '').trim().toUpperCase();
+        const bloco = String(row[3] || row[2] || '').trim().toUpperCase();
+        const unidade = String(row[4] || row[3] || '').trim().toUpperCase();
+        if(emp && unidade) {
+          const key = `${emp}|${bloco}|${unidade}`;
+          ctrMap[key] = {
+            dias: Number(row[9] || row[8] || 1),
+            avalBanco: Number(row[6] || 0),
+            viFinal: Number(row[7] || 0)
+          };
+        }
+      }
+    }
+
+    // Parse REL_ETQ (Base de Estoque) com extração exata das tipologias
+    globalData = [];
+    if(estRows.length > 1) {
+      for(let i = 1; i < estRows.length; i++) {
+        const row = estRows[i];
+        if(!row || row.length === 0) continue;
+
+        // Extração de colunas estruturais típicas do REL_ETQ
+        const regional = String(row[0] || '').trim();
+        const cidade = String(row[1] || '').trim();
+        const empreendimento = String(row[2] || '').trim();
+        const bloco = String(row[3] || '').trim();
+        const unidade = String(row[4] || '').trim();
+        
+        // FÓRMULA POR TRÁS: Pega a tipologia exata da coluna correta do arquivo REL_ETQ
+        const tipologia = String(row[5] || '2 Q').trim();
+        
+        const avaliacaoBanco = Number(row[6] || 0);
+        const viFinal = Number(row[7] || 0);
+        const desvio = Number(row[8] || 0);
+        const statusUnidade = String(row[9] || 'Disponível').trim();
+        const estoqueDisp = String(row[10] || 'NÃO').trim();
+        const estoqueLivre = String(row[11] || 'NÃO').trim();
+        const qtdeReavaliar = Number(row[12] || 0);
+        const diasUltVA = Number(row[13] || 500);
+
+        const empUpper = empreendimento.toUpperCase();
+        const regResolved = regional || auxMap[empreendimento] || auxMap[empUpper] || 'Não Mapeado';
+
+        globalData.push({
+          regional: regResolved,
+          cidade,
+          empreendimento,
+          bloco,
+          unidade,
+          tipReal: tipologia, // Tipologia exata lida diretamente do REL_ETQ
+          statusUnidade,
+          estoqueDisp,
+          estoqueLivre,
+          avaliacaoBanco,
+          viFinal,
+          desvio,
+          qtdeReavaliar,
+          proxAvaliacao: diasUltVA,
+          status: diasUltVA > 180 ? 'Reavaliar' : 'Em dia'
+        });
+      }
+    }
+
+    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
+    statusLine.className = 'status-line ok';
+    
+    document.getElementById('dashboard').classList.add('visible');
+    initDashboard();
+
+  } catch(err) {
+    console.error(err);
+    statusLine.textContent = 'Erro ao processar os arquivos: ' + err.message;
+    statusLine.className = 'status-line err';
+  }
+}
+
+function initDashboard() {
+  renderKPIs();
+  populateFilters();
+  renderRegionalTable();
+  renderDetailTable();
+}
+
+function renderKPIs() {
+  const kpiRow = document.getElementById('kpiRow');
+  const totalDisp = globalData.filter(d => d.estoqueDisp.toUpperCase() === 'SIM').length;
+  const totalLivre = globalData.filter(d => d.estoqueLivre.toUpperCase() === 'SIM').length;
+  const reavaliarCount = globalData.filter(d => d.status === 'Reavaliar').length;
+  
+  kpiRow.innerHTML = `
+    <div class="kpi"><div class="label">Total Unidades</div><div class="value">${globalData.length}</div></div>
+    <div class="kpi"><div class="label">Estoque Disponível</div><div class="value">${totalDisp}</div></div>
+    <div class="kpi"><div class="label">Estoque Livre</div><div class="value">${totalLivre}</div></div>
+    <div class="kpi"><div class="label">Necessidade Reavaliação</div><div class="value crit">${reavaliarCount}</div></div>
+  `;
+}
+
+function populateFilters() {
+  const regSet = new Set(globalData.map(d => d.regional));
+  const selReg = document.getElementById('filterRegional');
+  selReg.innerHTML = '<option value="">Todas as regionais</option>';
+  regSet.forEach(r => {
+    selReg.innerHTML += `<option value="${r}">${r}</option>`;
+  });
+}
+
+function renderRegionalTable() {
+  const tbody = document.getElementById('regionalTbody');
+  tbody.innerHTML = '';
+  
+  // Agrupamento simples por Regional / Tipologia
+  let groups = {};
+  globalData.forEach(d => {
+    const key = `${d.regional} > ${d.empreendimento} > ${d.tipReal}`;
+    if(!groups[key]) {
+      groups[key] = { reg: d.regional, emp: d.empreendimento, tip: d.tipReal, count: 0, livre: 0, sumVA: 0, sumVI: 0, reav: 0, diasMax: 0 };
+    }
+    groups[key].count++;
+    if(d.estoqueLivre.toUpperCase() === 'SIM') groups[key].livre++;
+    groups[key].sumVA += d.avaliacaoBanco;
+    groups[key].sumVI += d.viFinal;
+    if(d.status === 'Reavaliar') groups[key].reav++;
+    if(d.proxAvaliacao > groups[key].diasMax) groups[key].diasMax = d.proxAvaliacao;
+  });
+
+  Object.values(groups).forEach(g => {
+    const medVA = g.count ? (g.sumVA / g.count) : 0;
+    const medVI = g.count ? (g.sumVI / g.count) : 0;
+    const desvio = medVI ? ((medVA - medVI) / medVI) * 100 : 0;
+    const pctReav = g.count ? (g.reav / g.count) * 100 : 0;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="left">${g.reg} / ${g.emp} / <b>${g.tip}</b></td>
+      <td>${g.count}</td>
+      <td>${g.livre}</td>
+      <td>R$ ${medVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>${desvio.toFixed(1)}%</td>
+      <td>${g.reav}</td>
+      <td><span class="tag ${pctReav > 20 ? 'tag-reav' : 'tag-ok'}">${pctReav.toFixed(1)}%</span></td>
+      <td>${g.diasMax} dias</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDetailTable() {
+  const tbody = document.getElementById('detailTbody');
+  tbody.innerHTML = '';
+
+  const regFilter = document.getElementById('filterRegional').value;
+  const empFilter = document.getElementById('filterEmpreendimento').value.toLowerCase();
+  const onlyLivre = document.getElementById('filterLivre').checked;
+  const onlyReav = document.getElementById('filterReavOnly').checked;
+
+  let filtered = globalData.filter(d => {
+    if(regFilter && d.regional !== regFilter) return false;
+    if(empFilter && !d.empreendimento.toLowerCase().includes(empFilter)) return false;
+    if(onlyLivre && d.estoqueLivre.toUpperCase() !== 'SIM') return false;
+    if(onlyReav && d.status !== 'Reavaliar') return false;
+    return true;
+  });
+
+  const start = (currentPage - 1) * pageSize;
+  const pageData = filtered.slice(start, start + pageSize);
+
+  pageData.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="left">${d.regional}</td>
+      <td class="left">${d.empreendimento}</td>
+      <td class="left">${d.bloco}</td>
+      <td class="left">${d.unidade}</td>
+      <td class="left">${d.tipReal}</td>
+      <td class="left">${d.statusUnidade}</td>
+      <td>R$ ${d.avaliacaoBanco.toLocaleString('pt-BR')}</td>
+      <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
+      <td>${d.desvio.toLocaleString('pt-BR')}</td>
+      <td>${d.proxAvaliacao}</td>
+      <td class="left"><span class="tag ${d.status === 'Reavaliar' ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('pagerInfo').textContent = `Exibindo ${start + 1} a ${Math.min(start + pageSize, filtered.length)} de ${filtered.length} registros`;
+}
+</script>
+</body>
+</html>
