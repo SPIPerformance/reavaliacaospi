@@ -46,8 +46,9 @@ body{
 }
 a{color:var(--accent-dark);}
 button{font-family:var(--font-body);}
-::selection{background:#D1DFED; color:#0F2942;}
+::selection{background:#C8E6C9; color:#003319;}
 :focus-visible{outline:2px solid var(--mrv-green); outline-offset:2px;}
+input[type="checkbox"]{accent-color:var(--mrv-green); cursor:pointer;}
 
 .shell{max-width:1320px;margin:0 auto;padding:24px 24px 60px;}
 
@@ -108,32 +109,32 @@ button{font-family:var(--font-body);}
 @media (max-width:1100px){.kpi-row{grid-template-columns:repeat(4,1fr);}}
 @media (max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
 .kpi{
-  border:1px solid var(--line);
-  background:linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  border:1px solid var(--mrv-green);
+  background:var(--mrv-green);
   border-radius:8px;
-  box-shadow:0 1px 2px rgba(0,0,0,0.02);
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
   padding:14px 16px;
   transition:transform 0.15s ease, box-shadow 0.15s ease;
 }
 .kpi:hover{
   transform: translateY(-2px);
-  box-shadow:0 4px 8px rgba(0,0,0,0.05);
+  box-shadow:0 4px 8px rgba(0,0,0,0.1);
 }
 .kpi .label{
   font-family: var(--font-bold);
   font-weight: 700;
   font-size: 11px;
-  color: var(--ink-dim);
+  color: #FFFFFF;
   white-space: nowrap;
 }
 .kpi .value{
   font-family: var(--font-black);
   font-weight: 900;
   font-size: 18px;
-  color: var(--ink);
+  color: #FFFFFF;
   margin-top: 6px;
 }
-.kpi .value.crit{color:var(--crit-fg);}
+.kpi .value.crit{color:#FFFFFF;}
 
 table{width:100%;border-collapse:collapse;font-size:12.8px;}
 thead th{
@@ -234,6 +235,9 @@ tbody tr:hover{background:#F0F4F8;}
           <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
           <select id="treeFilterRegional">
             <option value="">Todas as regionais</option>
+          </select>
+          <select id="treeFilterStatusReav">
+            <option value="">Todos status de avaliação</option>
           </select>
           <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
         </div>
@@ -369,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
+  document.getElementById('treeFilterStatusReav').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterStatusReav').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
@@ -376,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
     document.getElementById('treeFilterEmpreendimento').value = '';
     document.getElementById('treeFilterRegional').value = '';
+    document.getElementById('treeFilterStatusReav').value = '';
     renderTreeTable();
     renderDetailTable();
   });
@@ -559,10 +565,12 @@ function initDashboard() {
 function getFilteredData() {
   const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
   const regFilterVal = document.getElementById('treeFilterRegional').value;
+  const statusReavFilterVal = document.getElementById('treeFilterStatusReav').value;
 
   return globalData.filter(d => {
     if (regFilterVal && d.regional !== regFilterVal) return false;
     if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return false;
+    if (statusReavFilterVal && d.status !== statusReavFilterVal) return false;
     return true;
   });
 }
@@ -608,6 +616,10 @@ function populateFilters() {
   const treeSelReg = document.getElementById('treeFilterRegional');
   treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => treeSelReg.innerHTML += `<option value="${r}">${r}</option>`);
+
+  const treeSelStatusReav = document.getElementById('treeFilterStatusReav');
+  treeSelStatusReav.innerHTML = '<option value="">Todos status de avaliação</option>';
+  reavStatusSet.forEach(s => treeSelStatusReav.innerHTML += `<option value="${s}">${s}</option>`);
 
   // Popular checkboxes de Status da Unidade
   const statusListEl = document.getElementById('statusUnidadeCheckboxesList');
