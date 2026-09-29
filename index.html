@@ -59,12 +59,6 @@ button{font-family:var(--font-body);}
 .tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;}
 .tb-meta b{color:var(--ink);font-weight:600;}
 
-.source-bar{
-  background:var(--panel);border:1px solid var(--line);border-radius:6px;
-  padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
-  font-size:12.5px;color:var(--ink-dim);
-}
-
 .panel{
   border:1px solid var(--line);
   background:var(--panel);
@@ -77,30 +71,12 @@ button{font-family:var(--font-body);}
   margin:0 0 14px;color:var(--ink);
 }
 
-.btn{
-  font-weight:600;font-size:13px;
-  background:var(--accent-dark);color:#fff;border:1px solid var(--accent-dark);border-radius:4px;
-  padding:11px 20px;cursor:pointer;transition:filter .15s, transform .05s;
-}
-.btn:hover{filter:brightness(1.15);}
-.btn:active{transform:translateY(1px);}
-.btn-ghost{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
-  font-weight:500;font-size:12.5px;padding:8px 13px;cursor:pointer;
-}
-.btn-ghost:hover{border-color:var(--accent);color:var(--accent-dark);}
-.btn-small{padding:6px 10px;font-size:11.5px;}
-
-.status-line{margin-top:12px;font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);min-height:16px;}
-.status-line.err{color:var(--crit-fg);}
-.status-line.ok{color:var(--ok-fg);}
-
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-@media (max-width:900px){.kpi-row{grid-template-columns:repeat(1,1fr);}}
-.kpi{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:14px 16px;}
-.kpi .label{font-size:11.5px;color:var(--ink-dim);}
-.kpi .value{font-family:var(--font-mono);font-weight:600;font-size:22px;color:var(--ink);margin-top:5px;}
-.kpi .value.warn{color:var(--warn-fg);}
+.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:14px;}
+@media (max-width:1100px){.kpi-row{grid-template-columns:repeat(4,1fr);}}
+@media (max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:12px 14px;}
+.kpi .label{font-size:11px;color:var(--ink-dim);white-space:nowrap;}
+.kpi .value{font-family:var(--font-mono);font-weight:600;font-size:18px;color:var(--ink);margin-top:4px;}
 .kpi .value.crit{color:var(--crit-fg);}
 
 table{width:100%;border-collapse:collapse;font-size:12.8px;}
@@ -122,6 +98,10 @@ tbody tr:hover{background:#EAF0F6;}
 
 .tree-toggle{display:inline-block;width:18px;font-weight:bold;color:var(--mrv-green);cursor:pointer;text-align:center;user-select:none;}
 
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
+.tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
+.tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
+
 .table-scroll{overflow-x:auto;}
 .table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
 .pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
@@ -129,11 +109,15 @@ tbody tr:hover{background:#EAF0F6;}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .filters select, .filters input[type=text]{
   background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
-  padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:150px;
+  padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:140px;
 }
-.filters input[type=text]{min-width:220px;}
-.chk{display:flex;align-items:center;gap:6px;font-size:12.3px;color:var(--ink-dim);}
-.chk input{accent-color:var(--accent-dark);}
+.filters input[type=text]{min-width:200px;}
+.btn-ghost{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
+  font-weight:500;font-size:12.5px;padding:8px 13px;cursor:pointer;
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent-dark);}
+.btn-small{padding:6px 10px;font-size:11.5px;}
 
 #dashboard{display:none;}
 #dashboard.visible{display:block;}
@@ -155,20 +139,6 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
 
   <div class="section-gap"></div>
 
-  <div class="source-bar">
-    <div id="dataSourceLine">Repositório: SPIPerformance/reavaliacaospi</div>
-    <button class="btn-ghost btn-small" id="btnRefresh">↻ Recarregar dados do GitHub</button>
-  </div>
-
-  <div class="section-gap"></div>
-
-  <div class="panel">
-    <h2>Status do Processamento</h2>
-    <div class="status-line" id="statusLine">Carregando bases do repositório...</div>
-  </div>
-
-  <div class="section-gap"></div>
-
   <div id="dashboard">
 
     <div class="kpi-row" id="kpiRow"></div>
@@ -178,7 +148,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
     <div class="panel">
       <h2>Por regional (Visão em árvore)</h2>
       <div class="filters">
-        <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos na árvore...">
+        <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
         <select id="treeFilterRegional">
           <option value="">Todas as regionais</option>
         </select>
@@ -209,10 +179,8 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
       <div class="filters">
         <select id="filterRegional"><option value="">Todas as regionais</option></select>
         <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
-        <select id="filterStatus"><option value="">Todos os status</option></select>
-        <label class="chk"><input type="checkbox" id="filterLivre" checked> Só estoque livre</label>
-        <label class="chk"><input type="checkbox" id="filterReavOnly"> Só a reavaliar</label>
-        <button class="btn-ghost btn-small" id="btnExportCsv">Exportar CSV</button>
+        <select id="filterStatusUnidade"><option value="">Todos Status Unidade</option></select>
+        <select id="filterStatusReav"><option value="">Todos Status Reavaliação</option></select>
       </div>
       <div class="table-scroll">
         <table id="detailTable">
@@ -223,8 +191,8 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
             <th class="left">Unidade</th>
             <th class="left">Tipologia Real</th>
             <th class="left">Status Unidade</th>
-            <th>Aval. Banco</th>
-            <th>VI Final</th>
+            <th>Valor Avaliação</th>
+            <th>Valor do Imóvel</th>
             <th>Desvio</th>
             <th>Dias Últ. VA</th>
             <th class="left">Status</th>
@@ -282,13 +250,27 @@ const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_RE
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnRefresh').addEventListener('click', loadDataFromGitHub);
-  document.getElementById('treeFilterEmpreendimento').addEventListener('input', renderTreeTable);
-  document.getElementById('treeFilterRegional').addEventListener('change', renderTreeTable);
+  document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
+  document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
+  document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
+  document.getElementById('filterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderDetailTable(); });
+  document.getElementById('filterStatusUnidade').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
+  document.getElementById('filterStatusReav').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
+
   document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
     document.getElementById('treeFilterEmpreendimento').value = '';
     document.getElementById('treeFilterRegional').value = '';
     renderTreeTable();
+    renderDetailTable();
   });
+
+  document.getElementById('btnPrevPage').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderDetailTable(); }
+  });
+  document.getElementById('btnNextPage').addEventListener('click', () => {
+    currentPage++; renderDetailTable();
+  });
+
   loadDataFromGitHub();
 });
 
@@ -299,11 +281,7 @@ function excelSerialToDate(serial) {
 }
 
 async function loadDataFromGitHub() {
-  const statusLine = document.getElementById('statusLine');
   const tbMeta = document.getElementById('tbMeta');
-
-  statusLine.textContent = 'Baixando arquivos do GitHub...';
-  statusLine.className = 'status-line';
 
   try {
     const [resEstoque, resControle, resDepara] = await Promise.all([
@@ -447,8 +425,6 @@ async function loadDataFromGitHub() {
       }
     }
 
-    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
-    statusLine.className = 'status-line ok';
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
     document.getElementById('dashboard').classList.add('visible');
@@ -456,50 +432,79 @@ async function loadDataFromGitHub() {
 
   } catch(err) {
     console.error(err);
-    statusLine.textContent = 'Erro ao processar arquivos do GitHub: ' + err.message;
-    statusLine.className = 'status-line err';
   }
 }
 
 function initDashboard() {
-  renderKPIs();
   populateFilters();
   renderTreeTable();
   renderDetailTable();
 }
 
-function renderKPIs() {
+function getFilteredData() {
+  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
+  const regFilterVal = document.getElementById('treeFilterRegional').value;
+
+  return globalData.filter(d => {
+    if (regFilterVal && d.regional !== regFilterVal) return false;
+    if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return false;
+    return true;
+  });
+}
+
+function renderKPIs(filteredSubset) {
   const kpiRow = document.getElementById('kpiRow');
-  const totalDisp = globalData.filter(d => d.estoqueDisp === 1).length;
-  const totalLivre = globalData.filter(d => d.estoqueLivre === 1).length;
-  const reavaliarCount = globalData.filter(d => d.status === 'Reavaliar').length;
+  const totalDisp = filteredSubset.filter(d => d.estoqueDisp === 1).length;
+  const totalLivre = filteredSubset.filter(d => d.estoqueLivre === 1).length;
+  
+  const livreItems = filteredSubset.filter(d => d.estoqueLivre === 1);
+  const sumVA = livreItems.reduce((acc, d) => acc + d.avaliacaoBanco, 0);
+  const countVA = livreItems.filter(d => d.avaliacaoBanco > 0).length;
+  const medVA = countVA ? sumVA / countVA : 0;
+
+  const sumVI = livreItems.reduce((acc, d) => acc + d.viFinal, 0);
+  const countVI = livreItems.filter(d => d.viFinal > 0).length;
+  const medVI = countVI ? sumVI / countVI : 0;
+
+  const desvioGlobal = medVI ? ((medVA - medVI) / medVI) * 100 : 0;
+  const reavaliarCount = filteredSubset.filter(d => d.status === 'Reavaliar').length;
+  const pctReavGlobal = totalDisp ? (reavaliarCount / totalDisp) * 100 : 0;
   
   kpiRow.innerHTML = `
-    <div class="kpi"><div class="label">Estoque Disponível</div><div class="value">${totalDisp}</div></div>
+    <div class="kpi"><div class="label">Estoque Disp</div><div class="value">${totalDisp}</div></div>
     <div class="kpi"><div class="label">Estoque Livre</div><div class="value">${totalLivre}</div></div>
+    <div class="kpi"><div class="label">Méd VA</div><div class="value">R$ ${medVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</div></div>
+    <div class="kpi"><div class="label">Méd VI</div><div class="value">R$ ${medVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</div></div>
+    <div class="kpi"><div class="label">% Desvio</div><div class="value">${desvioGlobal.toFixed(2)}%</div></div>
     <div class="kpi"><div class="label">Necessidade Reavaliação</div><div class="value crit">${reavaliarCount}</div></div>
+    <div class="kpi"><div class="label">% UH Reavaliar</div><div class="value">${pctReavGlobal.toFixed(2)}%</div></div>
   `;
 }
 
 function populateFilters() {
   const regSet = Array.from(new Set(globalData.map(d => d.regional))).sort();
+  const statusSet = Array.from(new Set(globalData.map(d => d.statusUnidade))).sort();
+  const reavStatusSet = Array.from(new Set(globalData.map(d => d.status))).sort();
   
   const selReg = document.getElementById('filterRegional');
   selReg.innerHTML = '<option value="">Todas as regionais</option>';
-  regSet.forEach(r => {
-    selReg.innerHTML += `<option value="${r}">${r}</option>`;
-  });
+  regSet.forEach(r => selReg.innerHTML += `<option value="${r}">${r}</option>`);
 
   const treeSelReg = document.getElementById('treeFilterRegional');
   treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
-  regSet.forEach(r => {
-    treeSelReg.innerHTML += `<option value="${r}">${r}</option>`;
-  });
+  regSet.forEach(r => treeSelReg.innerHTML += `<option value="${r}">${r}</option>`);
+
+  const selStatusUnidade = document.getElementById('filterStatusUnidade');
+  selStatusUnidade.innerHTML = '<option value="">Todos Status Unidade</option>';
+  statusSet.forEach(s => selStatusUnidade.innerHTML += `<option value="${s}">${s}</option>`);
+
+  const selStatusReav = document.getElementById('filterStatusReav');
+  selStatusReav.innerHTML = '<option value="">Todos Status Reavaliação</option>';
+  reavStatusSet.forEach(s => selStatusReav.innerHTML += `<option value="${s}">${s}</option>`);
 }
 
-// Função auxiliar para calcular cor tricolor (Verde -> Amarelo -> Vermelho) por percentil conforme imagem
 function getTricolorStyle(pct, allPcts) {
-  if (isNaN(pct)) return '';
+  if (isNaN(pct) || allPcts.length === 0) return '';
   const sorted = [...allPcts].sort((a, b) => a - b);
   const getPercentile = (val) => {
     const idx = sorted.findIndex(v => v >= val);
@@ -508,7 +513,6 @@ function getTricolorStyle(pct, allPcts) {
   };
   const p = getPercentile(pct);
   
-  // Cores exatas solicitadas: 0% Verde (#DCEFDD / #1E7A34), 30% Amarelo (#FBEBC7 / #8A5A00), 100% Vermelho (#F8D7D7 / #B3261E)
   let bg = '', fg = '';
   if (p <= 30) {
     bg = '#DCEFDD'; fg = '#1E7A34';
@@ -524,20 +528,16 @@ function renderTreeTable() {
   const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
 
-  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
-  const regFilterVal = document.getElementById('treeFilterRegional').value;
+  const subset = getFilteredData();
+  renderKPIs(subset);
 
   let tree = {};
-  globalData.forEach(d => {
-    if (regFilterVal && d.regional !== regFilterVal) return;
-    if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return;
-
+  subset.forEach(d => {
     if (!tree[d.regional]) tree[d.regional] = {};
     if (!tree[d.regional][d.empreendimento]) {
       tree[d.regional][d.empreendimento] = { tips: {}, diasVA: null };
     }
     
-    // Armazenar Dias Última VA por empreendimento
     if (d.proxAvaliacao !== '') {
       if (tree[d.regional][d.empreendimento].diasVA === null || d.proxAvaliacao > tree[d.regional][d.empreendimento].diasVA) {
         tree[d.regional][d.empreendimento].diasVA = d.proxAvaliacao;
@@ -562,22 +562,33 @@ function renderTreeTable() {
     node.uhReav += d.uhReav;
   });
 
-  // Coleta de todos os percentuais % UH Reavaliar para formatação tricolor
-  let allPcts = [];
+  // Coleta separada para escalas independentes
+  let regPcts = [];
+  let empPcts = [];
+  let tipPcts = [];
+
   Object.keys(tree).forEach(reg => {
+    let rDisp = 0, rReav = 0;
     Object.keys(tree[reg]).forEach(emp => {
-      let empDisp = 0, empUhReav = 0;
+      let eDisp = 0, eReav = 0;
       Object.keys(tree[reg][emp].tips).forEach(tip => {
         const n = tree[reg][emp].tips[tip];
-        empDisp += n.disp;
-        empUhReav += n.uhReav;
+        eDisp += n.disp;
+        eReav += n.uhReav;
+        const tPct = n.disp > 0 ? (n.uhReav / n.disp) * 100 : 0;
+        tipPcts.push(tPct);
       });
-      if (empDisp > 0) allPcts.push((empUhReav / empDisp) * 100);
+      rDisp += eDisp;
+      rReav += eReav;
+      if (eDisp > 0) empPcts.push((eReav / eDisp) * 100);
     });
+    if (rDisp > 0) regPcts.push((rReav / rDisp) * 100);
   });
 
+  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
+
   Object.keys(tree).sort().forEach(reg => {
-    let regDisp = 0, regLivre = 0, regSumVA = 0, regCountVA = 0, regSumVI = 0, regCountVI = 0, regUhReav = 0, regDiasMax = 0;
+    let regDisp = 0, regLivre = 0, regSumVA = 0, regCountVA = 0, regSumVI = 0, regCountVI = 0, regUhReav = 0;
     let regEmpKeys = Object.keys(tree[reg]).sort();
 
     regEmpKeys.forEach(emp => {
@@ -602,9 +613,6 @@ function renderTreeTable() {
       regSumVI += empSumVI;
       regCountVI += empCountVI;
       regUhReav += empUhReav;
-      
-      const empDias = tree[reg][emp].diasVA;
-      if (empDias !== null && empDias > regDiasMax) regDiasMax = empDias;
     });
 
     const medRegVA = regCountVA ? regSumVA / regCountVA : 0;
@@ -620,7 +628,7 @@ function renderTreeTable() {
     const autoExpand = empFilterVal !== '' ? 'expanded' : '';
     if (autoExpand) trReg.classList.add('expanded');
 
-    const styleRegPct = getTricolorStyle(pctRegReav, allPcts);
+    const styleRegPct = getTricolorStyle(pctRegReav, regPcts);
 
     trReg.innerHTML = `
       <td class="left"><span class="tree-toggle" id="toggle_${regId}">${autoExpand ? '-' : '+'}</span> <b>${reg}</b></td>
@@ -631,7 +639,7 @@ function renderTreeTable() {
       <td>${desvioReg.toFixed(2)}%</td>
       <td>${regUhReav}</td>
       <td><span style="${styleRegPct}">${pctRegReav.toFixed(2)}%</span></td>
-      <td>${regDiasMax > 0 ? regDiasMax + ' dias' : '-'}</td>
+      <td>-</td>
     `;
     tbody.appendChild(trReg);
 
@@ -663,7 +671,7 @@ function renderTreeTable() {
       const empId = regId + '_' + emp.replace(/[^a-zA-Z0-9]/g, '_');
       trEmp.dataset.target = empId;
       
-      const styleEmpPct = getTricolorStyle(pctEmpReav, allPcts);
+      const styleEmpPct = getTricolorStyle(pctEmpReav, empPcts);
 
       trEmp.innerHTML = `
         <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">${autoExpand ? '-' : '+'}</span> ${emp}</td>
@@ -689,7 +697,7 @@ function renderTreeTable() {
         trTip.className = `row-tip ${empId}`;
         if (autoExpand) trTip.style.display = 'table-row';
 
-        const styleTipPct = getTricolorStyle(pctTipReav, allPcts);
+        const styleTipPct = getTricolorStyle(pctTipReav, tipPcts);
 
         trTip.innerHTML = `
           <td class="left" style="padding-left:48px; color:var(--ink-dim);">${tip}</td>
@@ -743,14 +751,14 @@ function renderDetailTable() {
 
   const regFilter = document.getElementById('filterRegional').value;
   const empFilter = document.getElementById('filterEmpreendimento').value.toLowerCase();
-  const onlyLivre = document.getElementById('filterLivre').checked;
-  const onlyReav = document.getElementById('filterReavOnly').checked;
+  const statusUnidadeFilter = document.getElementById('filterStatusUnidade').value;
+  const statusReavFilter = document.getElementById('filterStatusReav').value;
 
   let filtered = globalData.filter(d => {
     if(regFilter && d.regional !== regFilter) return false;
     if(empFilter && !d.empreendimento.toLowerCase().includes(empFilter)) return false;
-    if(onlyLivre && d.estoqueLivre !== 1) return false;
-    if(onlyReav && d.status !== 'Reavaliar') return false;
+    if(statusUnidadeFilter && d.statusUnidade !== statusUnidadeFilter) return false;
+    if(statusReavFilter && d.status !== statusReavFilter) return false;
     return true;
   });
 
