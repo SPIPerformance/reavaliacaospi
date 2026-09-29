@@ -151,7 +151,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   <div class="titleblock">
     <div>
       <div class="tb-name">Painel de Avaliações</div>
-      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Com filtro de empreendimento integrado.</div>
+      <div class="tb-sub">Estrutura em árvore (Regional ➔ Empreendimento ➔ Tipologia) · Filtrado por escopo padrão de empreendimentos.</div>
     </div>
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
@@ -247,7 +247,7 @@ footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px
   </div>
 
   <footer>
-    Painel integrado com filtros na árvore e listagem detalhada por unidade.
+    Painel integrado com escopo padrão fixo de empreendimentos.
   </footer>
 
 </div>
@@ -257,6 +257,24 @@ let globalData = [];
 let deparaMap = {};
 let currentPage = 1;
 const pageSize = 50;
+
+// Lista padrão e definitiva de empreendimentos permitidos
+const ALLOWED_EMPREENDIMENTOS = new Set([
+  "BARÃO DE BARCELOS", "CITY GALLERIA", "COLINA DO SOL", "CORES DA ILHA", "CORES DO CAMPO",
+  "EPARQUE RIO PRETO LESTE MÓDULO 03", "FIORENTTINO RESIDENCE", "GRAN CAMPOLIM", "GRAN PRIMAVERA",
+  "JARDIM DOS CANÁRIOS", "JARDIM DOS ROUXINÓIS", "LIFE TERRAZZA", "MONTE DOS CEDROS",
+  "PALÁCIO DE ESTOCOLMO", "PARQUE SORRENTO", "PIAZZA SIRENA", "PORTAL DOS BURITIS",
+  "PORTAL DOS JATOBÁS", "RESERVA DAS AMARÍLIS", "RESERVA DI MEDEIROS", "RESERVA DOS LÍRIOS",
+  "RESIDENCIAL ARES", "RESIDENCIAL ATLANTA", "RESIDENCIAL AUTENTICITÀ", "RESIDENCIAL BELGRANO",
+  "RESIDENCIAL CANTO DAS ANDORINHAS", "RESIDENCIAL DON PAGLIATO", "RESIDENCIAL GRANDENA",
+  "RESIDENCIAL GREEN PARK", "RESIDENCIAL ILHA DE MALTA", "RESIDENCIAL JARDIM OLIVEIRAS",
+  "RESIDENCIAL JARDIM VERONA", "RESIDENCIAL LUNARE", "RESIDENCIAL MIRANTE DAS BRISAS",
+  "RESIDENCIAL MIRANTE DO VALE", "RESIDENCIAL MONTE DAS COLINAS", "RESIDENCIAL MONTE DOS IPÊS",
+  "RESIDENCIAL MORUMBI", "RESIDENCIAL PIAZZA DI MILANO", "RESIDENCIAL PIAZZA DI VIENA",
+  "RESIDENCIAL RIVIERA", "RESIDENCIAL SCARPONE", "RESIDENCIAL SOLAR DOS EUCALIPTOS",
+  "RESIDENCIAL VEREDAS", "SENSIA BOTÂNICO", "SENSIA GALLERIA", "SENSIA TAQUARAL",
+  "VALE DO SERENO_RESIDENCIAL CAMPOS DOURADOS", "VEM VIVER ARES"
+]);
 
 const GITHUB_USER = "SPIPerformance";
 const GITHUB_REPO = "reavaliacaospi";
@@ -352,7 +370,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    // 3. Processar Base de Estoque (REL_ETQ)
+    // 3. Processar Base de Estoque (REL_ETQ) com filtro da lista padrão
     const wsEstoque = wbEstoque.Sheets[wbEstoque.SheetNames[0]];
     const estRows = XLSX.utils.sheet_to_json(wsEstoque, {header: 1});
     
@@ -363,6 +381,11 @@ async function loadDataFromGitHub() {
         if (!row || row.length === 0) continue;
 
         const empreendimento = String(row[7] || '').trim();
+        const empUpper = empreendimento.toUpperCase();
+
+        // FILTRO OBRIGATÓRIO: Apenas empreendimentos da lista padrão
+        if (!ALLOWED_EMPREENDIMENTOS.has(empUpper)) continue;
+
         const cidade = String(row[1] || '').trim();
         const bloco = String(row[8] || '').trim();
         const unidade = String(row[9] || '').trim();
@@ -376,11 +399,7 @@ async function loadDataFromGitHub() {
         const varandaRaw = String(row[63] || 'NÃO').trim();
         const qtdGaragemTotal = Number(row[65] || 0);
 
-        if (!empreendimento) continue;
-
-        const empUpper = empreendimento.toUpperCase();
         const regional = deparaMap[empUpper] || '';
-        
         if (!regional) continue;
 
         const viFinal = valorImovel - valorBomPagador - bpPagadoria;
@@ -436,7 +455,7 @@ async function loadDataFromGitHub() {
       }
     }
 
-    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas.`;
+    statusLine.textContent = `Processamento concluído com sucesso! ${globalData.length} unidades carregadas (escopo padrão aplicado).`;
     statusLine.className = 'status-line ok';
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
@@ -473,14 +492,12 @@ function renderKPIs() {
 function populateFilters() {
   const regSet = Array.from(new Set(globalData.map(d => d.regional))).sort();
   
-  // Detalhe filters
   const selReg = document.getElementById('filterRegional');
   selReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => {
     selReg.innerHTML += `<option value="${r}">${r}</option>`;
   });
 
-  // Tree filters
   const treeSelReg = document.getElementById('treeFilterRegional');
   treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => {
@@ -561,7 +578,6 @@ function renderTreeTable() {
     const regId = 'reg_' + reg.replace(/\s+/g, '_');
     trReg.dataset.target = regId;
     
-    // Se houver filtro de empreendimento ativo, abre automaticamente a árvore
     const autoExpand = empFilterVal !== '' ? 'expanded' : '';
     if (autoExpand) trReg.classList.add('expanded');
 
