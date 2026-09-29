@@ -520,6 +520,16 @@ function getTricolorStyle(pct, allPcts) {
   return `background-color: ${bg}; color: ${fg}; padding: 2px 8px; border-radius: 3px; font-weight: 600;`;
 }
 
+function getDaysColorStyle(days) {
+  if (days === '' || isNaN(days)) return '';
+  const d = Number(days);
+  if (d <= 90) {
+    return 'background-color: #DCEFDD; color: #1E7A34; padding: 2px 8px; border-radius: 3px; font-weight: 600;';
+  } else {
+    return 'background-color: #F8D7D7; color: #B3261E; padding: 2px 8px; border-radius: 3px; font-weight: 600;';
+  }
+}
+
 function renderTreeTable() {
   const tbody = document.getElementById('treeTbody');
   tbody.innerHTML = '';
@@ -667,6 +677,7 @@ function renderTreeTable() {
       trEmp.dataset.target = empId;
       
       const styleEmpPct = getTricolorStyle(pctEmpReav, empPcts);
+      const styleEmpDays = getDaysColorStyle(empDias);
 
       trEmp.innerHTML = `
         <td class="left" style="padding-left:24px;"><span class="tree-toggle" id="toggle_${empId}">${autoExpand ? '-' : '+'}</span> ${emp}</td>
@@ -677,7 +688,7 @@ function renderTreeTable() {
         <td>${desvioEmp.toFixed(2)}%</td>
         <td>${empUhReav}</td>
         <td><span style="${styleEmpPct}">${pctEmpReav.toFixed(2)}%</span></td>
-        <td>${empDias !== null ? empDias + ' dias' : '-'}</td>
+        <td>${empDias !== null ? `<span style="${styleEmpDays}">${empDias}</span>` : '-'}</td>
       `;
       tbody.appendChild(trEmp);
 
@@ -762,6 +773,7 @@ function renderDetailTable() {
 
   pageData.forEach(d => {
     const tr = document.createElement('tr');
+    const detailDaysStyle = getDaysColorStyle(d.proxAvaliacao);
     tr.innerHTML = `
       <td class="left">${d.regional}</td>
       <td class="left">${d.empreendimento}</td>
@@ -772,7 +784,7 @@ function renderDetailTable() {
       <td>R$ ${d.avaliacaoBanco.toLocaleString('pt-BR')}</td>
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
       <td>${d.desvio.toLocaleString('pt-BR')}</td>
-      <td>${d.proxAvaliacao !== '' ? d.proxAvaliacao + ' dias' : '-'}</td>
+      <td>${d.proxAvaliacao !== '' ? `<span style="${detailDaysStyle}">${d.proxAvaliacao}</span>` : '-'}</td>
       <td class="left"><span class="tag ${d.status === 'Reavaliar' ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
     `;
     tbody.appendChild(tr);
