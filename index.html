@@ -441,12 +441,13 @@ async function loadDataFromGitHub() {
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
     if (ctrRows.length > 5) {
-      for (let i = 5; i < ctrRows.length; i++) {
+      // Linhas de dados no Controle BH.xlsx começam a partir da linha 6 (índice 6)
+      for (let i = 6; i < ctrRows.length; i++) {
         const row = ctrRows[i];
         if (!row || row.length === 0) continue;
-        const emp = String(row[7] || '').trim().toUpperCase(); // Coluna H (índice 7)
+        const emp = String(row[4] || '').trim().toUpperCase(); // Coluna E (índice 4) - Empreendimento
         if (emp) {
-          const rawDate = row[11];
+          const rawDate = row[11]; // Coluna L (índice 11) - Última avaliação
           let dataVA = null;
           if (typeof rawDate === 'number') {
             dataVA = excelSerialToDate(rawDate);
@@ -455,7 +456,7 @@ async function loadDataFromGitHub() {
             if (!isNaN(parsed)) dataVA = parsed;
           }
 
-          const statusVal = String(row[18] || '').trim(); // Coluna S (índice 18)
+          const statusVal = String(row[15] || '').trim(); // Coluna P (índice 15) - Status Atual
 
           controleMap[emp] = {
             dataVA: dataVA,
