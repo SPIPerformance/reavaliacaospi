@@ -10,28 +10,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#F1F3F6;
+  --bg:#EEEFF1;
   --panel:#FFFFFF;
-  --panel-alt:#F8F9FA;
-  --line:#E2E5E9;
-  --line-soft:#ECEEF1;
-  --ink:#1F242D;
-  --ink-dim:#646D7A;
-  --ink-faint:#9CA3AF;
-  --accent:#3B4752;
-  --accent-dark:#1E252D;
+  --panel-alt:#F5F6F7;
+  --line:#D7D9DC;
+  --line-soft:#E7E8EA;
+  --ink:#26282B;
+  --ink-dim:#65686D;
+  --ink-faint:#9A9DA2;
+  --accent:#4B5563;
+  --accent-dark:#2E3338;
   --mrv-green:#006B3F;
   --mrv-green-mid:#079D56;
   --mrv-green-bright:#00D38D;
-  --ok-bg:#E6F4EA; --ok-fg:#137333;
-  --warn-bg:#FEF7E0; --warn-fg:#B06000;
-  --crit-bg:#FCE8E6; --crit-fg:#C5221F;
-  
-  /* Fontes solicitadas */
-  --font-body:'Averta Demo', 'IBM Plex Sans', sans-serif;
-  --font-bold:'Averta-Bold', 'Averta Demo', 'IBM Plex Sans', sans-serif;
-  --font-black:'Averta-Black', 'Averta Demo', 'IBM Plex Sans', sans-serif;
-  --font-mono:'IBM Plex Mono', monospace;
+  --ok-bg:#DCEFDD; --ok-fg:#1E7A34;
+  --warn-bg:#FBEBC7; --warn-fg:#8A5A00;
+  --crit-bg:#F8D7D7; --crit-fg:#B3261E;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -46,166 +42,87 @@ body{
 }
 a{color:var(--accent-dark);}
 button{font-family:var(--font-body);}
-::selection{background:#C8E6C9; color:#003319;}
-:focus-visible{outline:2px solid var(--mrv-green); outline-offset:2px;}
-input[type="checkbox"]{accent-color:var(--mrv-green); cursor:pointer;}
+::selection{background:#C7D0DB;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
-.shell{max-width:1320px;margin:0 auto;padding:24px 24px 60px;}
+.shell{max-width:1320px;margin:0 auto;padding:20px 20px 60px;}
 
 .titleblock{
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:10px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  border-radius:6px;
   display:flex;justify-content:space-between;align-items:flex-end;
-  padding:20px 24px;gap:24px;flex-wrap:wrap;
-  margin-bottom:16px;
+  padding:18px 22px;gap:24px;flex-wrap:wrap;
 }
-.tb-name{
-  font-family: var(--font-black);
-  font-weight: 900;
-  font-size: 24px;
-  letter-spacing: -0.2px;
-  color: #FF8B22; /* Laranja solicitado */
-}
-.tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;background:var(--panel-alt);padding:6px 10px;border-radius:6px;border:1px solid var(--line-soft);}
+.tb-name{font-weight:700;font-size:22px;letter-spacing:-0.2px;color:var(--ink);}
+.tb-meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);text-align:right;}
 .tb-meta b{color:var(--ink);font-weight:600;}
-
-/* Abas */
-.tabs-nav{display:flex;gap:8px;margin-bottom:16px;}
-.tab-btn{
-  font-family: var(--font-bold);
-  font-weight: 700;
-  background:#E5E8ED;border:1px solid var(--line);border-bottom:none;
-  border-radius:8px 8px 0 0;padding:10px 22px;font-size:13.5px;
-  cursor:pointer;color:var(--ink-dim);transition:all 0.2s;
-}
-.tab-btn:hover{color:var(--ink);background:#DEE2E8;}
-.tab-btn.active{
-  background:var(--panel);color:var(--mrv-green);border-color:var(--line);
-  border-bottom:2px solid var(--panel);margin-bottom:-1px;position:relative;z-index:2;
-  box-shadow:0 -2px 5px rgba(0,0,0,0.02);
-}
-
-.tab-content{display:none;}
-.tab-content.active{display:block;}
 
 .panel{
   border:1px solid var(--line);
   background:var(--panel);
-  border-radius:10px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.04);
-  padding:22px 24px;
+  border-radius:6px;
+  padding:18px 20px;
 }
-.panel + .panel{margin-top:16px;}
+.panel + .panel{margin-top:14px;}
 .panel h2{
-  font-family: var(--font-bold);
-  font-weight: 700;
-  font-size: 15px;
-  margin:0 0 16px;color:var(--ink);
+  font-weight:600;font-size:14px;
+  margin:0 0 14px;color:var(--ink);
 }
 
-.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:16px;}
+.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:14px;}
 @media (max-width:1100px){.kpi-row{grid-template-columns:repeat(4,1fr);}}
 @media (max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
-.kpi{
-  border:1px solid var(--mrv-green);
-  background:var(--mrv-green);
-  border-radius:8px;
-  box-shadow:0 1px 2px rgba(0,0,0,0.04);
-  padding:14px 16px;
-  transition:transform 0.15s ease, box-shadow 0.15s ease;
-}
-.kpi:hover{
-  transform: translateY(-2px);
-  box-shadow:0 4px 8px rgba(0,0,0,0.1);
-}
-.kpi .label{
-  font-family: var(--font-bold);
-  font-weight: 700;
-  font-size: 11px;
-  color: #FFFFFF;
-  white-space: nowrap;
-}
-.kpi .value{
-  font-family: var(--font-black);
-  font-weight: 900;
-  font-size: 18px;
-  color: #FFFFFF;
-  margin-top: 6px;
-}
-.kpi .value.crit{color:#FFFFFF;}
+.kpi{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:12px 14px;}
+.kpi .label{font-size:11px;color:var(--ink-dim);white-space:nowrap;}
+.kpi .value{font-family:var(--font-mono);font-weight:600;font-size:18px;color:var(--ink);margin-top:4px;}
+.kpi .value.crit{color:var(--crit-fg);}
 
 table{width:100%;border-collapse:collapse;font-size:12.8px;}
 thead th{
-  font-family: var(--font-bold);
   text-align:right;font-weight:700;font-size:11.5px;
-  color:#fff;background:var(--mrv-green);border-bottom:1px solid var(--mrv-green);padding:10px 12px;
+  color:#fff;background:var(--mrv-green);border-bottom:1px solid var(--mrv-green);padding:9px 10px;
   white-space:nowrap;
 }
 thead th.left, td.left{text-align:left;}
-tbody td{padding:8px 12px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);font-size:12.3px;white-space:nowrap;}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);font-size:12.3px;white-space:nowrap;}
 tbody td.left{text-align:left;font-family:var(--font-body);}
-tbody tr:hover{background:#F0F4F8;}
-.row-regional{background:#F4F7F5;font-weight:600;cursor:pointer;}
-.row-regional:hover{background:#E6EFEA;}
-.row-emp{background:#FAFAFB;cursor:pointer;display:none;}
-.row-emp:hover{background:#F0F2F5;}
+tbody tr:hover{background:#EAF0F6;}
+.row-regional{background:#F0F4F2;font-weight:600;cursor:pointer;}
+.row-regional:hover{background:#E2ECE7;}
+.row-emp{background:#F8FAF9;cursor:pointer;display:none;}
+.row-emp:hover{background:#EDF2F0;}
 .row-tip{background:#FFFFFF;display:none;font-size:12px;}
-.row-tip:hover{background:#F7F9FA;}
+.row-tip:hover{background:#F5F7F6;}
 
 .tree-toggle{display:inline-block;width:18px;font-weight:bold;color:var(--mrv-green);cursor:pointer;text-align:center;user-select:none;}
 
-.tag{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10.8px;font-weight:600;white-space:nowrap;}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.8px;font-weight:600;white-space:nowrap;}
 .tag-reav{color:var(--crit-fg);background:var(--crit-bg);}
 .tag-ok{color:var(--ok-fg);background:var(--ok-bg);}
 
 .table-scroll{overflow-x:auto;}
-.table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px;flex-wrap:wrap;}
+.table-wrap-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
 .pager{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);}
 
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .filters select, .filters input[type=text]{
-  background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);
-  padding:8px 12px;font-family:var(--font-body);font-size:12.3px;min-width:140px;
-  box-shadow:0 1px 2px rgba(0,0,0,0.02);
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  padding:7px 10px;font-family:var(--font-body);font-size:12.3px;min-width:140px;
 }
-.filters input[type=text]{min-width:220px;}
-
-/* Checkbox Dropdown / Box */
-.checkbox-dropdown{
-  position:relative;display:inline-block;
-}
-.checkbox-dropdown-btn{
-  background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);
-  padding:8px 14px;font-family:var(--font-body);font-size:12.3px;cursor:pointer;
-  display:flex;align-items:center;gap:8px;min-width:210px;justify-content:space-between;
-  box-shadow:0 1px 2px rgba(0,0,0,0.02);
-}
-.checkbox-dropdown-content{
-  display:none;position:absolute;background:var(--panel);border:1px solid var(--line);
-  border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,0.08);padding:12px;z-index:100;
-  min-width:250px;max-height:220px;overflow-y:auto;top:100%;left:0;margin-top:4px;
-}
-.checkbox-dropdown-content.show{display:block;}
-.checkbox-item{
-  display:flex;align-items:center;gap:8px;padding:6px 6px;font-size:12px;cursor:pointer;
-}
-.checkbox-item:hover{background:var(--panel-alt);border-radius:4px;}
-.checkbox-item input{cursor:pointer;}
-
+.filters input[type=text]{min-width:200px;}
 .btn-ghost{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;
-  font-weight:500;font-size:12.5px;padding:8px 14px;cursor:pointer;
-  box-shadow:0 1px 2px rgba(0,0,0,0.02);
-  transition:all 0.15s ease;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
+  font-weight:500;font-size:12.5px;padding:8px 13px;cursor:pointer;
 }
-.btn-ghost:hover{border-color:var(--mrv-green);color:var(--mrv-green);background:#F9FAFB;}
-.btn-small{padding:6px 12px;font-size:11.5px;}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent-dark);}
+.btn-small{padding:6px 10px;font-size:11.5px;}
 
 #dashboard{display:none;}
 #dashboard.visible{display:block;}
-.section-gap{height:16px;}
+.section-gap{height:14px;}
+footer{margin-top:26px;color:var(--ink-faint);font-size:11px;line-height:1.7;border-top:1px solid var(--line);padding-top:14px;}
+footer code{font-family:var(--font-mono);background:var(--panel-alt);padding:1px 5px;border:1px solid var(--line);border-radius:3px;}
 </style>
 </head>
 <body>
@@ -218,101 +135,83 @@ tbody tr:hover{background:#F0F4F8;}
     <div class="tb-meta" id="tbMeta">Conectando ao GitHub...</div>
   </div>
 
+  <div class="section-gap"></div>
+
   <div id="dashboard">
 
-    <!-- Navegação por Abas -->
-    <div class="tabs-nav">
-      <button class="tab-btn active" data-tab="tab-painel">Painel de Avaliações</button>
-      <button class="tab-btn" data-tab="tab-detalhes">Detalhamento por Unidade</button>
-    </div>
+    <div class="kpi-row" id="kpiRow"></div>
 
-    <!-- ABA 1: Painel de Avaliações -->
-    <div id="tab-painel" class="tab-content active">
-      <div class="kpi-row" id="kpiRow"></div>
+    <div class="section-gap"></div>
 
-      <div class="panel">
-        <div class="filters">
-          <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
-          <select id="treeFilterRegional">
-            <option value="">Todas as regionais</option>
-          </select>
-          <select id="treeFilterStatusReav">
-            <option value="">Todos status de avaliação</option>
-          </select>
-          <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
-        </div>
-        <div class="table-scroll">
-          <table id="treeTable">
-            <thead><tr>
-              <th class="left">Rótulos de Linha</th>
-              <th>Etq. Disp</th>
-              <th>Etq. Livre</th>
-              <th>Méd. VA</th>
-              <th>Méd. VI</th>
-              <th>% Desvio</th>
-              <th>Qtde. UH Reavaliar</th>
-              <th>% UH Reavaliar</th>
-              <th>Dias Última VA</th>
-            </tr></thead>
-            <tbody id="treeTbody"></tbody>
-          </table>
-        </div>
+    <div class="panel">
+      <h2>Por regional (Visão em árvore)</h2>
+      <div class="filters">
+        <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
+        <select id="treeFilterRegional">
+          <option value="">Todas as regionais</option>
+        </select>
+        <button class="btn-ghost btn-small" id="btnClearTreeFilter">Limpar Filtros</button>
+      </div>
+      <div class="table-scroll">
+        <table id="treeTable">
+          <thead><tr>
+            <th class="left">Rótulos de Linha</th>
+            <th>Etq. Disp</th>
+            <th>Etq. Livre</th>
+            <th>Méd. VA</th>
+            <th>Méd. VI</th>
+            <th>% Desvio</th>
+            <th>Qtde. UH Reavaliar</th>
+            <th>% UH Reavaliar</th>
+            <th>Dias Última VA</th>
+          </tr></thead>
+          <tbody id="treeTbody"></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- ABA 2: Detalhamento por Unidade -->
-    <div id="tab-detalhes" class="tab-content">
-      <div class="panel">
-        <h2>Detalhamento por unidade</h2>
-        <div class="filters">
-          <select id="filterRegional"><option value="">Todas as regionais</option></select>
-          <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
-          
-          <!-- Filtro de Status da Unidade por Checkboxes Múltiplos -->
-          <div class="checkbox-dropdown">
-            <div class="checkbox-dropdown-btn" id="statusUnidadeDropdownBtn">
-              <span id="statusUnidadeBtnText">Status Unidade (Todos)</span> ▾
-            </div>
-            <div class="checkbox-dropdown-content" id="statusUnidadeContainer">
-              <div style="font-family:var(--font-bold); font-weight:700; margin-bottom:6px; font-size:11.5px; border-bottom:1px solid var(--line); padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                <span>Selecionar Status</span>
-                <a href="#" id="selectAllStatus" style="font-weight:700; font-size:11px; color:var(--mrv-green); text-decoration:none;">Todos</a>
-              </div>
-              <div id="statusUnidadeCheckboxesList"></div>
-            </div>
-          </div>
+    <div class="section-gap"></div>
 
-          <select id="filterStatusReav"><option value="">Todos Status Reavaliação</option></select>
-        </div>
-        <div class="table-scroll">
-          <table id="detailTable">
-            <thead><tr>
-              <th class="left">Regional</th>
-              <th class="left">Empreendimento</th>
-              <th class="left">Bloco</th>
-              <th class="left">Unidade</th>
-              <th class="left">Tipologia Real</th>
-              <th class="left">Status Unidade</th>
-              <th>Valor Avaliação</th>
-              <th>Valor do Imóvel</th>
-              <th>Desvio</th>
-              <th>Dias Últ. VA</th>
-              <th class="left">Status</th>
-            </tr></thead>
-            <tbody id="detailTbody"></tbody>
-          </table>
-        </div>
-        <div class="table-wrap-foot">
-          <div class="pager" id="pagerInfo"></div>
-          <div class="pager">
-            <button class="btn-ghost btn-small" id="btnPrevPage">‹ Anterior</button>
-            <button class="btn-ghost btn-small" id="btnNextPage">Próxima ›</button>
-          </div>
+    <div class="panel">
+      <h2>Detalhamento por unidade</h2>
+      <div class="filters">
+        <select id="filterRegional"><option value="">Todas as regionais</option></select>
+        <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
+        <select id="filterStatusUnidade"><option value="">Todos Status Unidade</option></select>
+        <select id="filterStatusReav"><option value="">Todos Status Reavaliação</option></select>
+      </div>
+      <div class="table-scroll">
+        <table id="detailTable">
+          <thead><tr>
+            <th class="left">Regional</th>
+            <th class="left">Empreendimento</th>
+            <th class="left">Bloco</th>
+            <th class="left">Unidade</th>
+            <th class="left">Tipologia Real</th>
+            <th class="left">Status Unidade</th>
+            <th>Valor Avaliação</th>
+            <th>Valor do Imóvel</th>
+            <th>Desvio</th>
+            <th>Dias Últ. VA</th>
+            <th class="left">Status</th>
+          </tr></thead>
+          <tbody id="detailTbody"></tbody>
+        </table>
+      </div>
+      <div class="table-wrap-foot">
+        <div class="pager" id="pagerInfo"></div>
+        <div class="pager">
+          <button class="btn-ghost btn-small" id="btnPrevPage">‹ Anterior</button>
+          <button class="btn-ghost btn-small" id="btnNextPage">Próxima ›</button>
         </div>
       </div>
     </div>
 
   </div>
+
+  <footer>
+    Painel integrado com regras idênticas à Tabela Dinâmica.
+  </footer>
 
 </div>
 
@@ -343,45 +242,21 @@ const GITHUB_USER = "SPIPerformance";
 const GITHUB_REPO = "reavaliacaospi";
 const GITHUB_BRANCH = "main";
 
-const CACHE_BUSTER = `?t=${new Date().getTime()}`;
-const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx${CACHE_BUSTER}`;
-const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx${CACHE_BUSTER}`;
-const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx${CACHE_BUSTER}`;
+const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx`;
+const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx`;
+const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx`;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Controle de Abas
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(btn.dataset.tab).classList.add('active');
-    });
-  });
-
-  // Dropdown Checkbox toggle
-  const dropdownBtn = document.getElementById('statusUnidadeDropdownBtn');
-  const dropdownContent = document.getElementById('statusUnidadeContainer');
-  dropdownBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdownContent.classList.toggle('show');
-  });
-  window.addEventListener('click', () => {
-    dropdownContent.classList.remove('show');
-  });
-  dropdownContent.addEventListener('click', (e) => e.stopPropagation());
-
   document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
-  document.getElementById('treeFilterStatusReav').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderDetailTable(); });
+  document.getElementById('filterStatusUnidade').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterStatusReav').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
 
   document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
     document.getElementById('treeFilterEmpreendimento').value = '';
     document.getElementById('treeFilterRegional').value = '';
-    document.getElementById('treeFilterStatusReav').value = '';
     renderTreeTable();
     renderDetailTable();
   });
@@ -447,7 +322,9 @@ async function loadDataFromGitHub() {
       for (let i = 5; i < ctrRows.length; i++) {
         const row = ctrRows[i];
         if (!row || row.length === 0) continue;
-        const emp = String(row[4] || '').trim().toUpperCase();
+        
+        // PROCX equivalente usando coluna H (índice 7) como chave e S (índice 18) como valor de status
+        const emp = String(row[7] || '').trim().toUpperCase();
         if (emp) {
           const rawDate = row[11];
           let dataVA = null;
@@ -457,9 +334,13 @@ async function loadDataFromGitHub() {
             const parsed = new Date(rawDate);
             if (!isNaN(parsed)) dataVA = parsed;
           }
-          if (dataVA) {
-            controleMap[emp] = dataVA;
-          }
+
+          const statusVal = String(row[18] || '').trim();
+
+          controleMap[emp] = {
+            dataVA: dataVA,
+            status: statusVal
+          };
         }
       }
     }
@@ -468,6 +349,8 @@ async function loadDataFromGitHub() {
     const estRows = XLSX.utils.sheet_to_json(wsEstoque, {header: 1});
     
     globalData = [];
+    let tempRawData = [];
+
     if (estRows.length > 6) {
       for (let i = 7; i < estRows.length; i++) {
         const row = estRows[i];
@@ -513,9 +396,13 @@ async function loadDataFromGitHub() {
         const estLivre = (['Lançado', 'Exclusivo Plataforma', 'Não Lançado', 'Bloqueado'].includes(statusUnidade)) ? 1 : 0;
 
         let diasUltVA = null;
+        let statusControl = '';
         if (controleMap[empUpper]) {
-          const diffTime = new Date() - controleMap[empUpper];
-          diasUltVA = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+          if (controleMap[empUpper].dataVA) {
+            const diffTime = new Date() - controleMap[empUpper].dataVA;
+            diasUltVA = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+          }
+          statusControl = controleMap[empUpper].status;
         }
 
         let uhReav = 0;
@@ -524,12 +411,12 @@ async function loadDataFromGitHub() {
         }
 
         const desvioVA_VI = avaliacaoBanco - viFinal;
-        const statusFinal = uhReav === 1 ? 'Reavaliar' : 'Em dia';
 
-        globalData.push({
+        tempRawData.push({
           regional,
           cidade,
           empreendimento,
+          empUpper,
           bloco,
           unidade,
           tipReal,
@@ -541,10 +428,62 @@ async function loadDataFromGitHub() {
           desvio: desvioVA_VI,
           uhReav,
           proxAvaliacao: diasUltVA !== null ? diasUltVA : '',
-          status: statusFinal
+          rawStatus: statusControl
         });
       }
     }
+
+    // Pré-cálculo para aplicar a regra da fórmula (CONT.SES equivalente)
+    // Agrupa por empreendimento para calcular o total disp, total reav (ou % UH Reavaliar) e máximo de dias
+    let empMetrics = {};
+    tempRawData.forEach(d => {
+      if (!empMetrics[d.empUpper]) {
+        empMetrics[d.empUpper] = { totalDisp: 0, totalReav: 0, maxDias: 0 };
+      }
+      if (d.estoqueDisp === 1) {
+        empMetrics[d.empUpper].totalDisp++;
+        if (d.uhReav === 1) {
+          empMetrics[d.empUpper].totalReav++;
+        }
+      }
+      if (d.proxAvaliacao !== '' && d.proxAvaliacao > empMetrics[d.empUpper].maxDias) {
+        empMetrics[d.empUpper].maxDias = d.proxAvaliacao;
+      }
+    });
+
+    // Aplicação da fórmula do status para cada registro
+    globalData = tempRawData.map(d => {
+      const metrics = empMetrics[d.empUpper] || { totalDisp: 0, totalReav: 0, maxDias: 0 };
+      const pctUHReav = metrics.totalDisp > 0 ? (metrics.totalReav / metrics.totalDisp) : 0;
+      
+      let statusFinal = '';
+      const st = d.rawStatus;
+
+      // Equivalente à fórmula:
+      // LET(status; PROCX(...); SE(status<>"Finalizado"; status; SE(CONT.SES(...)>0; "REAVALIAR"; status)))
+      if (st && st.toUpperCase() !== 'FINALIZADO') {
+        statusFinal = st;
+      } else {
+        // Verifica a condição do CONT.SES: Próx. Avaliação > 90 E % UH Reavaliar > 0,08
+        const meetsContSes = (d.proxAvaliacao !== '' && d.proxAvaliacao > 90) && (pctUHReav > 0.08);
+        
+        if (st && st.toUpperCase() === 'FINALIZADO') {
+          if (meetsContSes) {
+            statusFinal = 'REAVALIAR';
+          } else {
+            statusFinal = st;
+          }
+        } else {
+          // Caso não haja status na planilha de controle, aplica a regra padrão baseada em uhReav
+          statusFinal = (d.uhReav === 1) ? 'Reavaliar' : 'Em dia';
+        }
+      }
+
+      return {
+        ...d,
+        status: statusFinal
+      };
+    });
 
     tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
 
@@ -565,12 +504,10 @@ function initDashboard() {
 function getFilteredData() {
   const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
   const regFilterVal = document.getElementById('treeFilterRegional').value;
-  const statusReavFilterVal = document.getElementById('treeFilterStatusReav').value;
 
   return globalData.filter(d => {
     if (regFilterVal && d.regional !== regFilterVal) return false;
     if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return false;
-    if (statusReavFilterVal && d.status !== statusReavFilterVal) return false;
     return true;
   });
 }
@@ -617,72 +554,17 @@ function populateFilters() {
   treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
   regSet.forEach(r => treeSelReg.innerHTML += `<option value="${r}">${r}</option>`);
 
-  const treeSelStatusReav = document.getElementById('treeFilterStatusReav');
-  treeSelStatusReav.innerHTML = '<option value="">Todos status de avaliação</option>';
-  reavStatusSet.forEach(s => treeSelStatusReav.innerHTML += `<option value="${s}">${s}</option>`);
-
-  // Popular checkboxes de Status da Unidade
-  const statusListEl = document.getElementById('statusUnidadeCheckboxesList');
-  statusListEl.innerHTML = '';
-  statusSet.forEach((s, idx) => {
-    statusListEl.innerHTML += `
-      <label class="checkbox-item">
-        <input type="checkbox" name="statusUnidadeChk" value="${s}" checked> ${s}
-      </label>
-    `;
-  });
-
-  // Eventos para checkboxes de status unidade
-  document.querySelectorAll('input[name="statusUnidadeChk"]').forEach(chk => {
-    chk.addEventListener('change', () => {
-      updateStatusUnidadeBtnText();
-      currentPage = 1;
-      renderDetailTable();
-    });
-  });
-
-  document.getElementById('selectAllStatus').addEventListener('click', (e) => {
-    e.preventDefault();
-    const checkboxes = document.querySelectorAll('input[name="statusUnidadeChk"]');
-    const allChecked = Array.from(checkboxes).every(c => c.checked);
-    checkboxes.forEach(c => c.checked = !allChecked);
-    updateStatusUnidadeBtnText();
-    currentPage = 1;
-    renderDetailTable();
-  });
-
-  updateStatusUnidadeBtnText();
+  const selStatusUnidade = document.getElementById('filterStatusUnidade');
+  selStatusUnidade.innerHTML = '<option value="">Todos Status Unidade</option>';
+  statusSet.forEach(s => selStatusUnidade.innerHTML += `<option value="${s}">${s}</option>`);
 
   const selStatusReav = document.getElementById('filterStatusReav');
   selStatusReav.innerHTML = '<option value="">Todos Status Reavaliação</option>';
   reavStatusSet.forEach(s => selStatusReav.innerHTML += `<option value="${s}">${s}</option>`);
 }
 
-function updateStatusUnidadeBtnText() {
-  const checkboxes = document.querySelectorAll('input[name="statusUnidadeChk"]');
-  const checked = Array.from(checkboxes).filter(c => c.checked);
-  const btnText = document.getElementById('statusUnidadeBtnText');
-  if (checked.length === checkboxes.length || checked.length === 0) {
-    btnText.textContent = 'Status Unidade (Todos)';
-  } else if (checked.length === 1) {
-    btnText.textContent = checked[0].value;
-  } else {
-    btnText.textContent = `${checked.length} selecionados`;
-  }
-}
-
 function getTricolorStyle(pct, allPcts) {
   if (isNaN(pct) || allPcts.length === 0) return '';
-  
-  // Se for 100% ou se todos os valores da lista forem 100%, força vermelho (pior cenário)
-  if (pct === 100 || allPcts.every(v => v === 100)) {
-    return 'background-color: #FCE8E6; color: #C5221F; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
-  }
-  // Se todos forem 0%, força verde
-  if (allPcts.every(v => v === 0)) {
-    return 'background-color: #E6F4EA; color: #137333; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
-  }
-
   const sorted = [...allPcts].sort((a, b) => a - b);
   const getPercentile = (val) => {
     const idx = sorted.findIndex(v => v >= val);
@@ -693,22 +575,22 @@ function getTricolorStyle(pct, allPcts) {
   
   let bg = '', fg = '';
   if (p <= 30) {
-    bg = '#E6F4EA'; fg = '#137333';
+    bg = '#DCEFDD'; fg = '#1E7A34';
   } else if (p <= 70) {
-    bg = '#FEF7E0'; fg = '#B06000';
+    bg = '#FBEBC7'; fg = '#8A5A00';
   } else {
-    bg = '#FCE8E6'; fg = '#C5221F';
+    bg = '#F8D7D7'; fg = '#B3261E';
   }
-  return `background-color: ${bg}; color: ${fg}; padding: 3px 8px; border-radius: 4px; font-weight: 600;`;
+  return `background-color: ${bg}; color: ${fg}; padding: 2px 8px; border-radius: 3px; font-weight: 600;`;
 }
 
 function getDaysColorStyle(days) {
   if (days === '' || isNaN(days)) return '';
   const d = Number(days);
   if (d <= 90) {
-    return 'background-color: #E6F4EA; color: #137333; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
+    return 'background-color: #DCEFDD; color: #1E7A34; padding: 2px 8px; border-radius: 3px; font-weight: 600;';
   } else {
-    return 'background-color: #FCE8E6; color: #C5221F; padding: 3px 8px; border-radius: 4px; font-weight: 600;';
+    return 'background-color: #F8D7D7; color: #B3261E; padding: 2px 8px; border-radius: 3px; font-weight: 600;';
   }
 }
 
@@ -939,17 +821,28 @@ function renderDetailTable() {
 
   const regFilter = document.getElementById('filterRegional').value;
   const empFilter = document.getElementById('filterEmpreendimento').value.toLowerCase();
-  
-  const selectedStatusUnidade = Array.from(document.querySelectorAll('input[name="statusUnidadeChk"]:checked'))
-                                    .map(c => c.value);
-
+  const statusUnidadeFilter = document.getElementById('filterStatusUnidade').value;
   const statusReavFilter = document.getElementById('filterStatusReav').value;
+
+  let allowedEmps = null;
+  if (statusReavFilter) {
+    allowedEmps = new Set();
+    globalData.forEach(d => {
+      if (d.status === statusReavFilter) {
+        if (!regFilter || d.regional === regFilter) {
+          allowedEmps.add(d.empreendimento);
+        }
+      }
+    });
+  }
 
   let filtered = globalData.filter(d => {
     if(regFilter && d.regional !== regFilter) return false;
     if(empFilter && !d.empreendimento.toLowerCase().includes(empFilter)) return false;
-    if(selectedStatusUnidade.length > 0 && !selectedStatusUnidade.includes(d.statusUnidade)) return false;
-    if(statusReavFilter && d.status !== statusReavFilter) return false;
+    if(statusUnidadeFilter && d.statusUnidade !== statusUnidadeFilter) return false;
+    if(allowedEmps !== null) {
+      if(!allowedEmps.has(d.empreendimento)) return false;
+    }
     return true;
   });
 
@@ -959,6 +852,7 @@ function renderDetailTable() {
   pageData.forEach(d => {
     const tr = document.createElement('tr');
     const detailDaysStyle = getDaysColorStyle(d.proxAvaliacao);
+    const isReav = d.status === 'Reavaliar' || d.status.toUpperCase().includes('REAVALIA');
     tr.innerHTML = `
       <td class="left">${d.regional}</td>
       <td class="left">${d.empreendimento}</td>
@@ -970,7 +864,7 @@ function renderDetailTable() {
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
       <td>${d.desvio.toLocaleString('pt-BR')}</td>
       <td>${d.proxAvaliacao !== '' ? `<span style="${detailDaysStyle}">${d.proxAvaliacao}</span>` : '-'}</td>
-      <td class="left"><span class="tag ${d.status === 'Reavaliar' ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
+      <td class="left"><span class="tag ${isReav ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
     `;
     tbody.appendChild(tr);
   });
