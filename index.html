@@ -441,13 +441,12 @@ async function loadDataFromGitHub() {
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
     if (ctrRows.length > 5) {
-      // Linhas de dados no Controle BH.xlsx começam a partir da linha 6 (índice 6)
       for (let i = 6; i < ctrRows.length; i++) {
         const row = ctrRows[i];
         if (!row || row.length === 0) continue;
-        const emp = String(row[4] || '').trim().toUpperCase(); // Coluna E (índice 4) - Empreendimento
+        const emp = String(row[4] || '').trim().toUpperCase(); // Coluna E (índice 4)
         if (emp) {
-          const rawDate = row[11]; // Coluna L (índice 11) - Última avaliação
+          const rawDate = row[11]; // Coluna L (índice 11)
           let dataVA = null;
           if (typeof rawDate === 'number') {
             dataVA = excelSerialToDate(rawDate);
@@ -456,7 +455,11 @@ async function loadDataFromGitHub() {
             if (!isNaN(parsed)) dataVA = parsed;
           }
 
-          const statusVal = String(row[15] || '').trim(); // Coluna P (índice 15) - Status Atual
+          let statusVal = String(row[15] || '').trim(); // Coluna P (índice 15)
+          // Unifica FINALIZADO para "Em dia" para evitar duplicidade de status com o mesmo significado
+          if (statusVal.toUpperCase() === 'FINALIZADO') {
+            statusVal = 'Em dia';
+          }
 
           controleMap[emp] = {
             dataVA: dataVA,
@@ -577,15 +580,15 @@ async function loadDataFromGitHub() {
       let statusFinal = '';
       const st = d.rawStatus;
 
-      if (st && st.toUpperCase() !== 'FINALIZADO') {
+      if (st && st.toUpperCase() !== 'EM DIA' && st.toUpperCase() !== 'FINALIZADO') {
         statusFinal = st;
       } else {
         const meetsContSes = (d.proxAvaliacao !== '' && d.proxAvaliacao > 90) && (pctUHReav > 0.08);
-        if (st && st.toUpperCase() === 'FINALIZADO') {
+        if (st && (st.toUpperCase() === 'EM DIA' || st.toUpperCase() === 'FINALIZADO')) {
           if (meetsContSes) {
             statusFinal = 'REAVALIAR';
           } else {
-            statusFinal = st;
+            statusFinal = 'Em dia';
           }
         } else {
           statusFinal = (d.uhReav === 1) ? 'Reavaliar' : 'Em dia';
