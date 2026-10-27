@@ -392,8 +392,8 @@ function ultInccLabel() {
 // Seta ao lado do Méd. VI Corrigido: ▲ verde = VI corrigido menor que a VA; ▼ vermelha = VI corrigido maior que a VA
 function setaVI(vic, va) {
   if (!vic || !va) return '';
-  if (vic < va) return ' <span title="VI corrigido (INCC) menor que a VA" style="color:#137333;font-weight:700;">▲</span>';
-  if (vic > va) return ' <span title="VI corrigido (INCC) maior que a VA" style="color:#C5221F;font-weight:700;">▼</span>';
+  if (vic < va) return ' <span title="VI corrigido (INCC) menor que a VA" style="color:#00B050;font-size:20px;line-height:1;font-weight:900;vertical-align:middle;">▲</span>';
+  if (vic > va) return ' <span title="VI corrigido (INCC) maior que a VA" style="color:#FF1A1A;font-size:20px;line-height:1;font-weight:900;vertical-align:middle;">▼</span>';
   return '';
 }
 
