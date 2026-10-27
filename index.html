@@ -252,6 +252,7 @@ tbody tr:hover{background:#F0F4F8;}
               <th>Qtde. UH Reavaliar</th>
               <th>% UH Reavaliar</th>
               <th>Dias Última VA</th>
+              <th>Data Última VA</th>
             </tr></thead>
             <tbody id="treeTbody"></tbody>
           </table>
@@ -296,6 +297,8 @@ tbody tr:hover{background:#F0F4F8;}
               <th>Valor do Imóvel</th>
               <th>Desvio</th>
               <th>Dias Últ. VA</th>
+              <th>Data Últ. VA</th>
+              <th>Fator INCC</th>
               <th class="left">Status</th>
             </tr></thead>
             <tbody id="detailTbody"></tbody>
@@ -346,6 +349,37 @@ const CACHE_BUSTER = `?t=${new Date().getTime()}`;
 const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx${CACHE_BUSTER}`;
 const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx${CACHE_BUSTER}`;
 const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx${CACHE_BUSTER}`;
+const URL_INCC = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/incc.json${CACHE_BUSTER}`;
+let inccMap = {};
+
+async function loadINCC() {
+  const res = await fetch(URL_INCC);
+  if (!res.ok) throw new Error(`Erro ao baixar incc.json (${res.status})`);
+  inccMap = await res.json();
+}
+
+// Fator acumulado: meses de INCC-M posteriores ao mês da última avaliação
+function fatorINCC(dataVA) {
+  if (!dataVA) return 1;
+  const ref = dataVA.getUTCFullYear() * 12 + dataVA.getUTCMonth();
+  let f = 1;
+  Object.keys(inccMap).forEach(k => {
+    const [y, m] = k.split('-').map(Number);
+    if (y * 12 + (m - 1) > ref) f *= 1 + inccMap[k] / 100;
+  });
+  return f;
+}
+
+function ultInccLabel() {
+  const k = Object.keys(inccMap).sort().pop();
+  if (!k) return 'sem dados';
+  const [y, m] = k.split('-');
+  return `${m}/${y}`;
+}
+
+function fmtData(d) {
+  return d ? d.toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -403,6 +437,7 @@ async function loadDataFromGitHub() {
   const tbMeta = document.getElementById('tbMeta');
 
   try {
+    await loadINCC();
     const [resEstoque, resControle, resDepara] = await Promise.all([
       fetch(URL_ESTOQUE),
       fetch(URL_CONTROLE),
@@ -452,7 +487,7 @@ async function loadDataFromGitHub() {
             dataVA = excelSerialToDate(rawDate);
           } else if (rawDate) {
             const parsed = new Date(rawDate);
-            if (!isNaN(parsed)) dataVA = parsed;
+            if (!isNaN(parsed)) dataVA = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
           }
 
           let statusVal = String(row[15] || '').trim(); // Coluna P (índice 15)
@@ -501,7 +536,10 @@ async function loadDataFromGitHub() {
         const regional = deparaMap[empUpper] || '';
         if (!regional) continue;
 
-        const viFinal = valorImovel - valorBomPagador - bpPagadoria;
+        const viBase = valorImovel - valorBomPagador - bpPagadoria;
+        const dataUltVA = controleMap[empUpper] ? controleMap[empUpper].dataVA : null;
+        const fatorInc = fatorINCC(dataUltVA);
+        const viFinal = viBase * fatorInc;
 
         let tipAjustada = tipologiaRaw;
         if (tipologiaRaw === '1 Q' || tipologiaRaw === '1 Q + ESC') tipAjustada = '1 Q';
@@ -552,6 +590,8 @@ async function loadDataFromGitHub() {
           desvio: desvioVA_VI,
           uhReav,
           proxAvaliacao: diasUltVA !== null ? diasUltVA : '',
+          dataUltVA,
+          fatorInc,
           rawStatus: statusControl
         });
       }
@@ -601,7 +641,7 @@ async function loadDataFromGitHub() {
       };
     });
 
-    tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b>`;
+    tbMeta.innerHTML = `Atualizado: <b>${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</b> · INCC até <b>${ultInccLabel()}</b>`;
 
     document.getElementById('dashboard').classList.add('visible');
     initDashboard();
@@ -773,7 +813,7 @@ function renderTreeTable() {
   subset.forEach(d => {
     if (!tree[d.regional]) tree[d.regional] = {};
     if (!tree[d.regional][d.empreendimento]) {
-      tree[d.regional][d.empreendimento] = { tips: {}, diasVA: null };
+      tree[d.regional][d.empreendimento] = { tips: {}, diasVA: null, dataVA: d.dataUltVA };
     }
     
     if (d.proxAvaliacao !== '') {
@@ -877,6 +917,7 @@ function renderTreeTable() {
       <td>${regUhReav}</td>
       <td><span style="${styleRegPct}">${pctRegReav.toFixed(2)}%</span></td>
       <td>-</td>
+      <td>-</td>
     `;
     tbody.appendChild(trReg);
 
@@ -921,6 +962,7 @@ function renderTreeTable() {
         <td>${empUhReav}</td>
         <td><span style="${styleEmpPct}">${pctEmpReav.toFixed(2)}%</span></td>
         <td>${empDias !== null ? `<span style="${styleEmpDays}">${empDias}</span>` : '-'}</td>
+        <td>${fmtData(tree[reg][emp].dataVA)}</td>
       `;
       tbody.appendChild(trEmp);
 
@@ -946,6 +988,7 @@ function renderTreeTable() {
           <td>${desvioTip.toFixed(2)}%</td>
           <td>${n.uhReav}</td>
           <td><span style="${styleTipPct}">${pctTipReav.toFixed(2)}%</span></td>
+          <td>-</td>
           <td>-</td>
         `;
         tbody.appendChild(trTip);
@@ -1035,6 +1078,8 @@ function renderDetailTable() {
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
       <td>${d.desvio.toLocaleString('pt-BR')}</td>
       <td>${d.proxAvaliacao !== '' ? `<span style="${detailDaysStyle}">${d.proxAvaliacao}</span>` : '-'}</td>
+      <td>${fmtData(d.dataUltVA)}</td>
+      <td>${d.fatorInc.toFixed(4)}</td>
       <td class="left"><span class="tag ${isReav ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
     `;
     tbody.appendChild(tr);
