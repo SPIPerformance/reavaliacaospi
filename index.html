@@ -349,13 +349,21 @@ const CACHE_BUSTER = `?t=${new Date().getTime()}`;
 const URL_ESTOQUE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/REL_ETQCMCUNICPE.xlsx${CACHE_BUSTER}`;
 const URL_CONTROLE = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/Controle%20BH.xlsx${CACHE_BUSTER}`;
 const URL_DEPARA = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/depara.xlsx${CACHE_BUSTER}`;
+// INCC-M vem do arquivo incc.json (mesmo repositório): { "AAAA-MM": variação % no mês }
 const URL_INCC = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/incc.json${CACHE_BUSTER}`;
 let inccMap = {};
+let inccErro = null;
 
 async function loadINCC() {
-  const res = await fetch(URL_INCC);
-  if (!res.ok) throw new Error(`Erro ao baixar incc.json (${res.status})`);
-  inccMap = await res.json();
+  try {
+    const res = await fetch(URL_INCC);
+    if (!res.ok) throw new Error(`incc.json não encontrado (${res.status})`);
+    inccMap = await res.json();
+  } catch (e) {
+    console.error(e);
+    inccMap = {};
+    inccErro = e.message;
+  }
 }
 
 // Fator acumulado: meses de INCC-M posteriores ao mês da última avaliação
@@ -371,6 +379,7 @@ function fatorINCC(dataVA) {
 }
 
 function ultInccLabel() {
+  if (inccErro) return `⚠ não carregado (${inccErro})`;
   const k = Object.keys(inccMap).sort().pop();
   if (!k) return 'sem dados';
   const [y, m] = k.split('-');
@@ -648,6 +657,7 @@ async function loadDataFromGitHub() {
 
   } catch(err) {
     console.error(err);
+    tbMeta.textContent = 'Erro ao carregar: ' + err.message;
   }
 }
 
