@@ -247,8 +247,8 @@ tbody tr:hover{background:#F0F4F8;}
               <th>Etq. Disp</th>
               <th>Etq. Livre</th>
               <th>Méd. VA</th>
+              <th>Méd. VA Corrig. INCC</th>
               <th>Méd. VI</th>
-              <th>Méd. VI Corrig. INCC</th>
               <th>% Desvio</th>
               <th>Qtde. UH Reavaliar</th>
               <th>% UH Reavaliar</th>
@@ -295,8 +295,8 @@ tbody tr:hover{background:#F0F4F8;}
               <th class="left">Tipologia Real</th>
               <th class="left">Status Unidade</th>
               <th>Valor Avaliação</th>
+              <th>VA Corrigido INCC</th>
               <th>Valor do Imóvel</th>
-              <th>VI Corrigido INCC</th>
               <th>Desvio</th>
               <th>Dias Últ. VA</th>
               <th>Data Últ. VA</th>
@@ -387,14 +387,6 @@ function ultInccLabel() {
   if (!k) return 'sem dados';
   const [y, m] = k.split('-');
   return `${m}/${y}`;
-}
-
-// Seta ao lado do Méd. VI Corrigido: ▲ verde = VI corrigido menor que a VA; ▼ vermelha = VI corrigido maior que a VA
-function setaVI(vic, va) {
-  if (!vic || !va) return '';
-  if (vic < va) return ' <span title="VI corrigido (INCC) menor que a VA" style="color:#00B050;font-size:20px;line-height:1;font-weight:900;vertical-align:middle;">▲</span>';
-  if (vic > va) return ' <span title="VI corrigido (INCC) maior que a VA" style="color:#FF1A1A;font-size:20px;line-height:1;font-weight:900;vertical-align:middle;">▼</span>';
-  return '';
 }
 
 function fmtData(d) {
@@ -559,8 +551,8 @@ async function loadDataFromGitHub() {
         const viBase = valorImovel - valorBomPagador - bpPagadoria;
         const dataUltVA = controleMap[empUpper] ? controleMap[empUpper].dataVA : null;
         const fatorInc = fatorINCC(dataUltVA);
-        const viFinal = viBase; // critério original (sem INCC) — usado em desvio, UH a reavaliar e status
-        const viCorrigido = viBase * fatorInc; // apenas informativo
+        const viFinal = viBase; 
+        const vaCorrigido = avaliacaoBanco * fatorInc; // Valor de Avaliação corrigido pelo INCC
 
         let tipAjustada = tipologiaRaw;
         if (tipologiaRaw === '1 Q' || tipologiaRaw === '1 Q + ESC') tipAjustada = '1 Q';
@@ -613,7 +605,7 @@ async function loadDataFromGitHub() {
           proxAvaliacao: diasUltVA !== null ? diasUltVA : '',
           dataUltVA,
           fatorInc,
-          viCorrigido,
+          vaCorrigido,
           inccBase: dataUltVA ? 'desde a última VA' : 'últimos 12 meses (sem data de VA)',
           rawStatus: statusControl
         });
@@ -847,7 +839,7 @@ function renderTreeTable() {
     }
 
     if (!tree[d.regional][d.empreendimento].tips[d.tipReal]) {
-      tree[d.regional][d.empreendimento].tips[d.tipReal] = { disp: 0, livre: 0, sumVA: 0, countVA: 0, sumVI: 0, sumVIc: 0, countVI: 0, uhReav: 0 };
+      tree[d.regional][d.empreendimento].tips[d.tipReal] = { disp: 0, livre: 0, sumVA: 0, sumVAc: 0, countVA: 0, sumVI: 0, countVI: 0, uhReav: 0 };
     }
     const node = tree[d.regional][d.empreendimento].tips[d.tipReal];
     if (d.estoqueDisp === 1) node.disp++;
@@ -855,11 +847,11 @@ function renderTreeTable() {
     
     if (d.avaliacaoBanco > 0) {
       node.sumVA += d.avaliacaoBanco;
+      node.sumVAc += d.vaCorrigido;
       node.countVA++;
     }
     if (d.viFinal > 0) {
       node.sumVI += d.viFinal;
-      node.sumVIc += d.viCorrigido;
       node.countVI++;
     }
     node.uhReav += d.uhReav;
@@ -890,11 +882,11 @@ function renderTreeTable() {
   const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
 
   Object.keys(tree).sort().forEach(reg => {
-    let regDisp = 0, regLivre = 0, regSumVA = 0, regCountVA = 0, regSumVI = 0, regSumVIc = 0, regCountVI = 0, regUhReav = 0;
+    let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVAc = 0, regCountVA = 0, regSumVI = 0, regCountVI = 0, regUhReav = 0;
     let regEmpKeys = Object.keys(tree[reg]).sort();
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empSumVIc = 0, empCountVI = 0, empUhReav = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVAc = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0;
       let empTipKeys = Object.keys(tree[reg][emp].tips).sort();
 
       empTipKeys.forEach(tip => {
@@ -902,9 +894,9 @@ function renderTreeTable() {
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
+        empSumVAc += n.sumVAc;
         empCountVA += n.countVA;
         empSumVI += n.sumVI;
-        empSumVIc += n.sumVIc;
         empCountVI += n.countVI;
         empUhReav += n.uhReav;
       });
@@ -912,16 +904,16 @@ function renderTreeTable() {
       regDisp += empDisp;
       regLivre += empLivre;
       regSumVA += empSumVA;
+      regSumVAc += empSumVAc;
       regCountVA += empCountVA;
       regSumVI += empSumVI;
-      regSumVIc += empSumVIc;
       regCountVI += empCountVI;
       regUhReav += empUhReav;
     });
 
     const medRegVA = regCountVA ? regSumVA / regCountVA : 0;
+    const medRegVAc = regCountVA ? regSumVAc / regCountVA : 0;
     const medRegVI = regCountVI ? regSumVI / regCountVI : 0;
-    const medRegVIc = regCountVI ? regSumVIc / regCountVI : 0;
     const desvioReg = medRegVI ? ((medRegVA - medRegVI) / medRegVI) * 100 : 0;
     const pctRegReav = regDisp ? (regUhReav / regDisp) * 100 : 0;
 
@@ -940,8 +932,8 @@ function renderTreeTable() {
       <td>${regDisp}</td>
       <td>${regLivre}</td>
       <td>R$ ${medRegVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medRegVAc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>R$ ${medRegVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medRegVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medRegVIc, medRegVA)}</td>
       <td>${desvioReg.toFixed(2)}%</td>
       <td>${regUhReav}</td>
       <td><span style="${styleRegPct}">${pctRegReav.toFixed(2)}%</span></td>
@@ -951,7 +943,7 @@ function renderTreeTable() {
     tbody.appendChild(trReg);
 
     regEmpKeys.forEach(emp => {
-      let empDisp = 0, empLivre = 0, empSumVA = 0, empCountVA = 0, empSumVI = 0, empSumVIc = 0, empCountVI = 0, empUhReav = 0;
+      let empDisp = 0, empLivre = 0, empSumVA = 0, empSumVAc = 0, empCountVA = 0, empSumVI = 0, empCountVI = 0, empUhReav = 0;
       let empTipKeys = Object.keys(tree[reg][emp].tips).sort();
 
       empTipKeys.forEach(tip => {
@@ -959,16 +951,16 @@ function renderTreeTable() {
         empDisp += n.disp;
         empLivre += n.livre;
         empSumVA += n.sumVA;
+        empSumVAc += n.sumVAc;
         empCountVA += n.countVA;
         empSumVI += n.sumVI;
-        empSumVIc += n.sumVIc;
         empCountVI += n.countVI;
         empUhReav += n.uhReav;
       });
 
       const medEmpVA = empCountVA ? empSumVA / empCountVA : 0;
+      const medEmpVAc = empCountVA ? empSumVAc / empCountVA : 0;
       const medEmpVI = empCountVI ? empSumVI / empCountVI : 0;
-      const medEmpVIc = empCountVI ? empSumVIc / empCountVI : 0;
       const desvioEmp = medEmpVI ? ((medEmpVA - medEmpVI) / medEmpVI) * 100 : 0;
       const pctEmpReav = empDisp ? (empUhReav / empDisp) * 100 : 0;
       const empDias = tree[reg][emp].diasVA;
@@ -988,8 +980,8 @@ function renderTreeTable() {
         <td>${empDisp}</td>
         <td>${empLivre}</td>
         <td>R$ ${medEmpVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+        <td>R$ ${medEmpVAc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
         <td>R$ ${medEmpVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medEmpVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medEmpVIc, medEmpVA)}</td>
         <td>${desvioEmp.toFixed(2)}%</td>
         <td>${empUhReav}</td>
         <td><span style="${styleEmpPct}">${pctEmpReav.toFixed(2)}%</span></td>
@@ -1001,8 +993,8 @@ function renderTreeTable() {
       empTipKeys.forEach(tip => {
         const n = tree[reg][emp].tips[tip];
         const medTipVA = n.countVA ? n.sumVA / n.countVA : 0;
+        const medTipVAc = n.countVA ? n.sumVAc / n.countVA : 0;
         const medTipVI = n.countVI ? n.sumVI / n.countVI : 0;
-        const medTipVIc = n.countVI ? n.sumVIc / n.countVI : 0;
         const desvioTip = medTipVI ? ((medTipVA - medTipVI) / medTipVI) * 100 : 0;
         const pctTipReav = n.disp ? (n.uhReav / n.disp) * 100 : 0;
 
@@ -1017,8 +1009,8 @@ function renderTreeTable() {
           <td>${n.disp}</td>
           <td>${n.livre}</td>
           <td>R$ ${medTipVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+          <td>R$ ${medTipVAc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
           <td>R$ ${medTipVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medTipVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medTipVIc, medTipVA)}</td>
           <td>${desvioTip.toFixed(2)}%</td>
           <td>${n.uhReav}</td>
           <td><span style="${styleTipPct}">${pctTipReav.toFixed(2)}%</span></td>
@@ -1109,8 +1101,8 @@ function renderDetailTable() {
       <td class="left">${d.tipReal}</td>
       <td class="left">${d.statusUnidade}</td>
       <td>R$ ${d.avaliacaoBanco.toLocaleString('pt-BR')}</td>
+      <td title="Fator INCC ${d.fatorInc.toFixed(4)} · base: ${d.inccBase}">R$ ${d.vaCorrigido.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
-      <td title="Fator INCC ${d.fatorInc.toFixed(4)} · base: ${d.inccBase}">R$ ${d.viCorrigido.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>${d.desvio.toLocaleString('pt-BR')}</td>
       <td>${d.proxAvaliacao !== '' ? `<span style="${detailDaysStyle}">${d.proxAvaliacao}</span>` : '-'}</td>
       <td>${fmtData(d.dataUltVA)}</td>
