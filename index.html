@@ -389,6 +389,14 @@ function ultInccLabel() {
   return `${m}/${y}`;
 }
 
+// Seta ao lado do Méd. VI Corrigido: ▲ verde = VI corrigido menor que a VA; ▼ vermelha = VI corrigido maior que a VA
+function setaVI(vic, va) {
+  if (!vic || !va) return '';
+  if (vic < va) return ' <span title="VI corrigido (INCC) menor que a VA" style="color:#137333;font-weight:700;">▲</span>';
+  if (vic > va) return ' <span title="VI corrigido (INCC) maior que a VA" style="color:#C5221F;font-weight:700;">▼</span>';
+  return '';
+}
+
 function fmtData(d) {
   return d ? d.toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-';
 }
@@ -933,7 +941,7 @@ function renderTreeTable() {
       <td>${regLivre}</td>
       <td>R$ ${medRegVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>R$ ${medRegVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medRegVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medRegVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medRegVIc, medRegVA)}</td>
       <td>${desvioReg.toFixed(2)}%</td>
       <td>${regUhReav}</td>
       <td><span style="${styleRegPct}">${pctRegReav.toFixed(2)}%</span></td>
@@ -981,7 +989,7 @@ function renderTreeTable() {
         <td>${empLivre}</td>
         <td>R$ ${medEmpVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
         <td>R$ ${medEmpVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medEmpVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medEmpVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medEmpVIc, medEmpVA)}</td>
         <td>${desvioEmp.toFixed(2)}%</td>
         <td>${empUhReav}</td>
         <td><span style="${styleEmpPct}">${pctEmpReav.toFixed(2)}%</span></td>
@@ -1010,7 +1018,7 @@ function renderTreeTable() {
           <td>${n.livre}</td>
           <td>R$ ${medTipVA.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
           <td>R$ ${medTipVI.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
-      <td>R$ ${medTipVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td>R$ ${medTipVIc.toLocaleString('pt-BR', {maximumFractionDigits:0})}${setaVI(medTipVIc, medTipVA)}</td>
           <td>${desvioTip.toFixed(2)}%</td>
           <td>${n.uhReav}</td>
           <td><span style="${styleTipPct}">${pctTipReav.toFixed(2)}%</span></td>
