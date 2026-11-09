@@ -295,6 +295,7 @@ tbody tr:hover{background:#F0F4F8;}
               <th class="left">Tipologia Real</th>
               <th class="left">Status Unidade</th>
               <th class="left">Status</th>
+              <th class="left">Status Controle BH</th>
               <th>Valor Avaliação</th>
               <th>VA Corrigido INCC</th>
               <th>Valor do Imóvel</th>
@@ -399,6 +400,11 @@ function setaDesvio(val) {
   }
 }
 
+// Normaliza nomes para casar estoque x Controle BH (ignora acento, caixa e espaços duplicados)
+function normKey(v) {
+  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
 function fmtData(d) {
   return d ? d.toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-';
 }
@@ -494,14 +500,16 @@ async function loadDataFromGitHub() {
       }
     }
 
-    const wsControle = wbControle.Sheets[wbControle.SheetNames[0]];
+    // Usa a aba "CONTROLE" (por nome); se não existir, cai para a primeira aba
+    const abaControle = wbControle.SheetNames.find(n => normKey(n) === 'CONTROLE') || wbControle.SheetNames[0];
+    const wsControle = wbControle.Sheets[abaControle];
     const ctrRows = XLSX.utils.sheet_to_json(wsControle, {header: 1});
     let controleMap = {};
     if (ctrRows.length > 5) {
       for (let i = 6; i < ctrRows.length; i++) {
         const row = ctrRows[i];
         if (!row || row.length === 0) continue;
-        const emp = String(row[4] || '').trim().toUpperCase(); // Coluna E (índice 4)
+        const emp = normKey(row[4]); // Coluna E (índice 4)
         if (emp) {
           const rawDate = row[11]; // Coluna L (índice 11)
           let dataVA = null;
@@ -514,9 +522,11 @@ async function loadDataFromGitHub() {
 
           let statusVal = String(row[15] || '').trim(); // Coluna P (índice 15)
 
+          const prevCtr = controleMap[emp];
           controleMap[emp] = {
             dataVA: dataVA,
-            status: statusVal
+            status: statusVal,
+            linhas: (prevCtr ? prevCtr.linhas : 0) + 1
           };
         }
       }
@@ -535,6 +545,7 @@ async function loadDataFromGitHub() {
 
         const empreendimento = String(row[7] || '').trim();
         const empUpper = empreendimento.toUpperCase();
+        const empKey = normKey(empreendimento);
 
         if (!ALLOWED_EMPREENDIMENTOS.has(empUpper)) continue;
 
@@ -555,7 +566,7 @@ async function loadDataFromGitHub() {
         if (!regional) continue;
 
         const viBase = valorImovel - valorBomPagador - bpPagadoria;
-        const dataUltVA = controleMap[empUpper] ? controleMap[empUpper].dataVA : null;
+        const dataUltVA = controleMap[empKey] ? controleMap[empKey].dataVA : null;
         const fatorInc = fatorINCC(dataUltVA);
         const viFinal = viBase; 
         const vaCorrigido = avaliacaoBanco * fatorInc; // Valor de Avaliação corrigido pelo INCC
@@ -578,12 +589,12 @@ async function loadDataFromGitHub() {
 
         let diasUltVA = null;
         let statusControl = '';
-        if (controleMap[empUpper]) {
-          if (controleMap[empUpper].dataVA) {
-            const diffTime = new Date() - controleMap[empUpper].dataVA;
+        if (controleMap[empKey]) {
+          if (controleMap[empKey].dataVA) {
+            const diffTime = new Date() - controleMap[empKey].dataVA;
             diasUltVA = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
           }
-          statusControl = controleMap[empUpper].status;
+          statusControl = controleMap[empKey].status;
         }
 
         let uhReav = 0;
@@ -613,7 +624,8 @@ async function loadDataFromGitHub() {
           fatorInc,
           vaCorrigido,
           inccBase: dataUltVA ? 'desde a última VA' : 'últimos 12 meses (sem data de VA)',
-          rawStatus: statusControl
+          rawStatus: statusControl,
+          ctrLinhas: controleMap[empKey] ? controleMap[empKey].linhas : 0
         });
       }
     }
@@ -1105,6 +1117,7 @@ function renderDetailTable() {
       <td class="left">${d.tipReal}</td>
       <td class="left">${d.statusUnidade}</td>
       <td class="left"><span class="tag ${isReav ? 'tag-reav' : 'tag-ok'}">${d.status}</span></td>
+      <td class="left">${d.rawStatus ? d.rawStatus + (d.ctrLinhas > 1 ? ` (${d.ctrLinhas} linhas)` : '') : '⚠ não encontrado'}</td>
       <td>R$ ${d.avaliacaoBanco.toLocaleString('pt-BR')}</td>
       <td title="Fator INCC ${d.fatorInc.toFixed(4)} · base: ${d.inccBase}">R$ ${d.vaCorrigido.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
       <td>R$ ${d.viFinal.toLocaleString('pt-BR')}</td>
