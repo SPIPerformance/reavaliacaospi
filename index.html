@@ -513,10 +513,6 @@ async function loadDataFromGitHub() {
           }
 
           let statusVal = String(row[15] || '').trim(); // Coluna P (índice 15)
-          // Unifica FINALIZADO para "Em dia" para evitar duplicidade de status com o mesmo significado
-          if (statusVal.toUpperCase() === 'FINALIZADO') {
-            statusVal = 'Em dia';
-          }
 
           controleMap[emp] = {
             dataVA: dataVA,
@@ -644,20 +640,18 @@ async function loadDataFromGitHub() {
       
       let statusFinal = '';
       const st = d.rawStatus;
+      const stUp = st ? st.toUpperCase() : '';
 
-      if (st && st.toUpperCase() !== 'EM DIA' && st.toUpperCase() !== 'FINALIZADO') {
+      if (st && stUp !== 'FINALIZADO') {
+        // Qualquer status do Controle BH diferente de "Finalizado" (ex.: REAVALIAÇÃO, Em dia) é mantido como está
         statusFinal = st;
-      } else {
+      } else if (stUp === 'FINALIZADO') {
+        // Só "Finalizado" é recalculado pelo painel
         const meetsContSes = (d.proxAvaliacao !== '' && d.proxAvaliacao > 90) && (pctUHReav > 0.08);
-        if (st && (st.toUpperCase() === 'EM DIA' || st.toUpperCase() === 'FINALIZADO')) {
-          if (meetsContSes) {
-            statusFinal = 'REAVALIAR';
-          } else {
-            statusFinal = 'Em dia';
-          }
-        } else {
-          statusFinal = (d.uhReav === 1) ? 'Reavaliar' : 'Em dia';
-        }
+        statusFinal = meetsContSes ? 'REAVALIAR' : 'Em dia';
+      } else {
+        // Sem status no Controle BH
+        statusFinal = (d.uhReav === 1) ? 'Reavaliar' : 'Em dia';
       }
 
       return {
