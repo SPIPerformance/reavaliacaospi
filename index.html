@@ -193,6 +193,13 @@ tbody tr:hover{background:#F0F4F8;}
 .checkbox-item:hover{background:var(--panel-alt);border-radius:4px;}
 .checkbox-item input{cursor:pointer;}
 
+/* Multi-seleção (regional / empreendimento) */
+.ms-content{min-width:300px;max-height:none !important;overflow:visible !important;}
+.ms-head{font-family:var(--font-bold);font-weight:700;margin-bottom:6px;font-size:11.5px;border-bottom:1px solid var(--line);padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.ms-head a{font-weight:700;font-size:11px;color:var(--mrv-green);text-decoration:none;}
+.ms-search{width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font-body);}
+.ms-list{max-height:190px;overflow-y:auto;}
+.ms-text{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .btn-ghost{
   background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;
   font-weight:500;font-size:12.5px;padding:8px 14px;cursor:pointer;
@@ -231,10 +238,8 @@ tbody tr:hover{background:#F0F4F8;}
 
       <div class="panel">
         <div class="filters">
-          <input type="text" id="treeFilterEmpreendimento" placeholder="🔍 Filtrar empreendimentos...">
-          <select id="treeFilterRegional">
-            <option value="">Todas as regionais</option>
-          </select>
+          <div id="msTreeRegional"></div>
+          <div id="msTreeEmp"></div>
           <select id="treeFilterStatusReav">
             <option value="">Todos status de avaliação</option>
           </select>
@@ -266,8 +271,8 @@ tbody tr:hover{background:#F0F4F8;}
       <div class="panel">
         <h2>Detalhamento por unidade</h2>
         <div class="filters">
-          <select id="filterRegional"><option value="">Todas as regionais</option></select>
-          <input type="text" id="filterEmpreendimento" placeholder="Buscar empreendimento...">
+          <div id="msDetRegional"></div>
+          <div id="msDetEmp"></div>
           
           <!-- Filtro de Status da Unidade por Checkboxes Múltiplos -->
           <div class="checkbox-dropdown">
@@ -409,7 +414,104 @@ function fmtData(d) {
   return d ? d.toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-';
 }
 
+let msTreeReg, msTreeEmp, msDetReg, msDetEmp;
+
+// Dropdown com checkboxes. Nada marcado = sem filtro (todos).
+function createMultiSelect(containerId, cfg, onChange) {
+  const root = document.getElementById(containerId);
+  root.className = 'checkbox-dropdown';
+  root.innerHTML = `
+    <div class="checkbox-dropdown-btn"><span class="ms-text"></span> ▾</div>
+    <div class="checkbox-dropdown-content ms-content">
+      <div class="ms-head"><span>${cfg.title}</span><a href="#" class="ms-clear">Limpar</a></div>
+      ${cfg.search ? '<input type="text" class="ms-search" placeholder="Buscar...">' : ''}
+      <div class="ms-list"></div>
+    </div>`;
+  const btn = root.querySelector('.checkbox-dropdown-btn');
+  const content = root.querySelector('.ms-content');
+  const textEl = root.querySelector('.ms-text');
+  const listEl = root.querySelector('.ms-list');
+  const searchEl = root.querySelector('.ms-search');
+  let options = [];
+  let selected = new Set();
+
+  function updateText() {
+    if (selected.size === 0) textEl.textContent = cfg.all;
+    else if (selected.size === 1) textEl.textContent = Array.from(selected)[0];
+    else textEl.textContent = `${selected.size} ${cfg.many}`;
+  }
+
+  function renderList() {
+    const term = searchEl ? searchEl.value.toLowerCase().trim() : '';
+    listEl.innerHTML = '';
+    options.filter(o => !term || o.toLowerCase().includes(term)).forEach(o => {
+      const label = document.createElement('label');
+      label.className = 'checkbox-item';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = selected.has(o);
+      chk.addEventListener('change', () => {
+        if (chk.checked) selected.add(o); else selected.delete(o);
+        updateText();
+        onChange();
+      });
+      label.appendChild(chk);
+      label.appendChild(document.createTextNode(' ' + o));
+      listEl.appendChild(label);
+    });
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const abrir = !content.classList.contains('show');
+    document.querySelectorAll('.checkbox-dropdown-content.show').forEach(el => el.classList.remove('show'));
+    if (abrir) content.classList.add('show');
+  });
+  content.addEventListener('click', (e) => e.stopPropagation());
+  // fecha ao clicar fora (captura, para funcionar mesmo com stopPropagation dos outros dropdowns)
+  document.addEventListener('click', (e) => { if (!root.contains(e.target)) content.classList.remove('show'); }, true);
+  if (searchEl) searchEl.addEventListener('input', renderList);
+  root.querySelector('.ms-clear').addEventListener('click', (e) => {
+    e.preventDefault();
+    selected.clear();
+    renderList();
+    updateText();
+    onChange();
+  });
+
+  updateText();
+  return {
+    setOptions(opts) {
+      options = opts;
+      selected = new Set(Array.from(selected).filter(x => opts.includes(x)));
+      if (searchEl) searchEl.value = '';
+      renderList();
+      updateText();
+    },
+    getSelected() { return Array.from(selected); },
+    clear() { selected.clear(); renderList(); updateText(); }
+  };
+}
+
+// Empreendimentos disponíveis conforme as regionais marcadas
+function refreshEmpOptions(msReg, msEmp) {
+  const regs = msReg.getSelected();
+  const emps = Array.from(new Set(
+    globalData.filter(d => !regs.length || regs.includes(d.regional)).map(d => d.empreendimento)
+  )).sort();
+  msEmp.setOptions(emps);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const refreshTree = () => { currentPage = 1; renderTreeTable(); renderDetailTable(); };
+  msTreeReg = createMultiSelect('msTreeRegional', {title: 'Selecionar regionais', all: 'Regional (Todas)', many: 'regionais', search: false},
+    () => { refreshEmpOptions(msTreeReg, msTreeEmp); refreshTree(); });
+  msTreeEmp = createMultiSelect('msTreeEmp', {title: 'Selecionar empreendimentos', all: 'Empreendimento (Todos)', many: 'empreendimentos', search: true}, refreshTree);
+  msDetReg = createMultiSelect('msDetRegional', {title: 'Selecionar regionais', all: 'Regional (Todas)', many: 'regionais', search: false},
+    () => { refreshEmpOptions(msDetReg, msDetEmp); currentPage = 1; renderDetailTable(); });
+  msDetEmp = createMultiSelect('msDetEmp', {title: 'Selecionar empreendimentos', all: 'Empreendimento (Todos)', many: 'empreendimentos', search: true},
+    () => { currentPage = 1; renderDetailTable(); });
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -430,16 +532,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   dropdownContent.addEventListener('click', (e) => e.stopPropagation());
 
-  document.getElementById('treeFilterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
-  document.getElementById('treeFilterRegional').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
   document.getElementById('treeFilterStatusReav').addEventListener('change', () => { currentPage = 1; renderTreeTable(); renderDetailTable(); });
-  document.getElementById('filterRegional').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
-  document.getElementById('filterEmpreendimento').addEventListener('input', () => { currentPage = 1; renderDetailTable(); });
   document.getElementById('filterStatusReav').addEventListener('change', () => { currentPage = 1; renderDetailTable(); });
 
   document.getElementById('btnClearTreeFilter').addEventListener('click', () => {
-    document.getElementById('treeFilterEmpreendimento').value = '';
-    document.getElementById('treeFilterRegional').value = '';
+    msTreeReg.clear();
+    refreshEmpOptions(msTreeReg, msTreeEmp);
+    msTreeEmp.clear();
     document.getElementById('treeFilterStatusReav').value = '';
     renderTreeTable();
     renderDetailTable();
@@ -690,13 +789,13 @@ function initDashboard() {
 }
 
 function getFilteredData() {
-  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
-  const regFilterVal = document.getElementById('treeFilterRegional').value;
+  const empSel = msTreeEmp.getSelected();
+  const regSel = msTreeReg.getSelected();
   const statusReavFilterVal = document.getElementById('treeFilterStatusReav').value;
 
   return globalData.filter(d => {
-    if (regFilterVal && d.regional !== regFilterVal) return false;
-    if (empFilterVal && !d.empreendimento.toLowerCase().includes(empFilterVal)) return false;
+    if (regSel.length && !regSel.includes(d.regional)) return false;
+    if (empSel.length && !empSel.includes(d.empreendimento)) return false;
     if (statusReavFilterVal && d.status !== statusReavFilterVal) return false;
     return true;
   });
@@ -736,13 +835,10 @@ function populateFilters() {
   const statusSet = Array.from(new Set(globalData.map(d => d.statusUnidade))).sort();
   const reavStatusSet = Array.from(new Set(globalData.map(d => d.status))).sort();
   
-  const selReg = document.getElementById('filterRegional');
-  selReg.innerHTML = '<option value="">Todas as regionais</option>';
-  regSet.forEach(r => selReg.innerHTML += `<option value="${r}">${r}</option>`);
-
-  const treeSelReg = document.getElementById('treeFilterRegional');
-  treeSelReg.innerHTML = '<option value="">Todas as regionais</option>';
-  regSet.forEach(r => treeSelReg.innerHTML += `<option value="${r}">${r}</option>`);
+  msTreeReg.setOptions(regSet);
+  msDetReg.setOptions(regSet);
+  refreshEmpOptions(msTreeReg, msTreeEmp);
+  refreshEmpOptions(msDetReg, msDetEmp);
 
   const treeSelStatusReav = document.getElementById('treeFilterStatusReav');
   treeSelStatusReav.innerHTML = '<option value="">Todos status de avaliação</option>';
@@ -895,7 +991,7 @@ function renderTreeTable() {
     if (rDisp > 0) regPcts.push((rReav / rDisp) * 100);
   });
 
-  const empFilterVal = document.getElementById('treeFilterEmpreendimento').value.toLowerCase().trim();
+  const empFilterVal = msTreeEmp.getSelected().length ? 'sel' : '';
 
   Object.keys(tree).sort().forEach(reg => {
     let regDisp = 0, regLivre = 0, regSumVA = 0, regSumVAc = 0, regCountVA = 0, regSumVI = 0, regCountVI = 0, regUhReav = 0;
@@ -1072,8 +1168,8 @@ function renderDetailTable() {
   const tbody = document.getElementById('detailTbody');
   tbody.innerHTML = '';
 
-  const regFilter = document.getElementById('filterRegional').value;
-  const empFilter = document.getElementById('filterEmpreendimento').value.toLowerCase();
+  const regSel = msDetReg.getSelected();
+  const empSel = msDetEmp.getSelected();
   
   const selectedStatusUnidade = Array.from(document.querySelectorAll('input[name="statusUnidadeChk"]:checked'))
                                     .map(c => c.value);
@@ -1085,7 +1181,7 @@ function renderDetailTable() {
     allowedEmps = new Set();
     globalData.forEach(d => {
       if (d.status === statusReavFilter) {
-        if (!regFilter || d.regional === regFilter) {
+        if (!regSel.length || regSel.includes(d.regional)) {
           allowedEmps.add(d.empreendimento);
         }
       }
@@ -1093,8 +1189,8 @@ function renderDetailTable() {
   }
 
   let filtered = globalData.filter(d => {
-    if(regFilter && d.regional !== regFilter) return false;
-    if(empFilter && !d.empreendimento.toLowerCase().includes(empFilter)) return false;
+    if(regSel.length && !regSel.includes(d.regional)) return false;
+    if(empSel.length && !empSel.includes(d.empreendimento)) return false;
     if(selectedStatusUnidade.length > 0 && !selectedStatusUnidade.includes(d.statusUnidade)) return false;
     if(allowedEmps !== null) {
       if(!allowedEmps.has(d.empreendimento)) return false;
